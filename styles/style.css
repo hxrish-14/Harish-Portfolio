@@ -152,13 +152,26 @@ section{ padding: clamp(36px, 5.5vw, 76px) 0; position: relative; scroll-margin-
 
 .marker{
   font-style: normal;
-  background: linear-gradient(120deg, var(--accent-yellow) 0%, var(--accent-yellow) 100%);
+  background: linear-gradient(
+    120deg,
+    var(--accent-yellow) 0%,
+    var(--accent-yellow) 100%
+  );
   background-repeat: no-repeat;
   background-size: 100% 38%;
   background-position: 0 82%;
   padding: 0 .1em;
-  color: #17151F; /* fixed dark text — always readable on the yellow patch in both themes */
   border-radius: 2px;
+
+  /* Light mode */
+  color: #17151F;
+  -webkit-text-fill-color: #17151F;
+}
+
+/* Force white text in dark mode */
+[data-theme="dark"] .marker{
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
 }
 
 /* ---------- BUTTONS ---------- */
