@@ -774,7 +774,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     safe(applyConfig);
     safe(initContextMenuBlock);
-    safe(initCursorGlow);
+    //safe(initCursorGlow);
     safe(renderSkills);
     safe(renderDeepFocus);
     safe(() => renderRacetrack("educationTrack", DATA.education));
