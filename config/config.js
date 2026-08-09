@@ -52,17 +52,16 @@ window.PORTFOLIO_CONFIG = {
   LOGOS: {
     adhiparasakthi:
       "https://assets.allegiance-educare.com/colleges/thumb/250_250_1392964652adhaiprasakthi%20college%20art%20and%20science.png",
-    mgr:"https://share.google/2PUqjtzCJ9O0vroRK"// source given was an Instagram profile page, not a direct image: https://www.instagram.com/mgreri/?hl=en
+    mgr:"assets/images/MGR LOGO.png"// source given was an Instagram profile page, not a direct image: https://www.instagram.com/mgreri/?hl=en
     kaashiv:
-      "https://media.licdn.com/dms/image/v2/C560BAQFC2jYbP2vMUw/company-logo_200_200/company-logo_200_200/0/1638609434663/kaashiv_infotech_logo?e=2147483647&v=beta&t=3lSLUhuNeDws6h4MoAZ6tjs8si8wfKuJk2kEkNip0gQ
-      "https://yt3.googleusercontent.com/7UhXyVBrm-Q736okMY7xZIAeAdpOP9xRsdojsoV1CaoNt0Ue4PzHa72AYwLgi9pB0HzhPB-d=s900-c-k-c0x00ffffff-no-rj",
-  },
+      "assets/images/KAASHIV LOGO.jpeg"
+},
 
   // ---- Project screenshots ----
   // Add a direct https image URL for each project once you have one — until
   // then the cards show a clean gradient placeholder instead of a broken image.
   PROJECT_IMAGES: {
-    privateServer: "https://share.google/iTqqgP8UihxmDsyyx", // e.g. "assets/images/private-server.jpg"
-    babyshieldIot: "https://share.google/BALamKVhtQETE50mI", // e.g. "assets/images/babyshield-iot.jpg"
+    privateServer: "assets/images/SERVER LOGO.jpeg", // e.g. "assets/images/private-server.jpg"
+    babyshieldIot: "assets/images/IOT LOGO.jpeg", // e.g. "assets/images/babyshield-iot.jpg"
   },
 };
