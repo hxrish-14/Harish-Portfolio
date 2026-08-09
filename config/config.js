@@ -23,7 +23,7 @@ window.PORTFOLIO_CONFIG = {
   // Ctrl+Alt+S opens your Spotify playlist. Left empty on purpose — add your
   // playlist URL here (e.g. "https://open.spotify.com/playlist/xxxxxxxx")
   // and the shortcut will start working automatically.
-  SPOTIFY_PLAYLIST_URL: "",
+  SPOTIFY_PLAYLIST_URL: "https://open.spotify.com/playlist/4UBKA7MiDsw9rePWl5dFSH?si=0us_jNs-QamQS3il1TdTughttps%3A%2F%2Fopen.spotify.com%2Fplaylist%2F5URdtVRhAN12Qs63drvIUh%3Fsi%3DUhIsfO99QDKd46yucD3zvg&pi=a-gR4LM2ZfTzOu&nd=1&utm_medium=organic&product=open&%24full_url=https%3A%2F%2Fopen.spotify.com%2Fplaylist%2F4UBKA7MiDsw9rePWl5dFSH%3Fsi%3D0us_jNs-QamQS3il1TdTughttps%3A%2F%2Fopen.spotify.com%2Fplaylist%2F5URdtVRhAN12Qs63drvIUh%3Fsi%3DUhIsfO99QDKd46yucD3zvg%26pi%3Da-gR4LM2ZfTzOu&feature=organic",
 
   // ---- Profile photo (hero) ----
   PROFILE_IMAGE_URL:
@@ -52,10 +52,9 @@ window.PORTFOLIO_CONFIG = {
   LOGOS: {
     adhiparasakthi:
       "https://assets.allegiance-educare.com/colleges/thumb/250_250_1392964652adhaiprasakthi%20college%20art%20and%20science.png",
-    mgr: null, // source given was an Instagram profile page, not a direct image: https://www.instagram.com/mgreri/?hl=en
+    mgr:"https://share.google/2PUqjtzCJ9O0vroRK"// source given was an Instagram profile page, not a direct image: https://www.instagram.com/mgreri/?hl=en
     kaashiv:
-      "https://media.licdn.com/dms/image/v2/C560BAQFC2jYbP2vMUw/company-logo_200_200/company-logo_200_200/0/1638609434663/kaashiv_infotech_logo",
-    brakesIndia:
+      "https://media.licdn.com/dms/image/v2/C560BAQFC2jYbP2vMUw/company-logo_200_200/company-logo_200_200/0/1638609434663/kaashiv_infotech_logo?e=2147483647&v=beta&t=3lSLUhuNeDws6h4MoAZ6tjs8si8wfKuJk2kEkNip0gQ
       "https://yt3.googleusercontent.com/7UhXyVBrm-Q736okMY7xZIAeAdpOP9xRsdojsoV1CaoNt0Ue4PzHa72AYwLgi9pB0HzhPB-d=s900-c-k-c0x00ffffff-no-rj",
   },
 
@@ -63,7 +62,7 @@ window.PORTFOLIO_CONFIG = {
   // Add a direct https image URL for each project once you have one — until
   // then the cards show a clean gradient placeholder instead of a broken image.
   PROJECT_IMAGES: {
-    privateServer: null, // e.g. "assets/images/private-server.jpg"
-    babyshieldIot: null, // e.g. "assets/images/babyshield-iot.jpg"
+    privateServer: "https://share.google/iTqqgP8UihxmDsyyx", // e.g. "assets/images/private-server.jpg"
+    babyshieldIot: "https://share.google/BALamKVhtQETE50mI", // e.g. "assets/images/babyshield-iot.jpg"
   },
 };
