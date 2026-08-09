@@ -208,34 +208,35 @@
   /* ==========================================================================
      MINIMAL CURSOR-SHADOW GLOW (system cursor stays completely normal)
      ========================================================================== */
-  //function initCursorGlow() {
-    //const glow = document.getElementById("cursorGlow");
-  //  if (!glow) return;
-   // const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  //  if (!supportsHover || reduced) return;
+  function initCursorGlow() {
+    const glow = document.getElementById("cursorGlow");
+    if (!glow) return;
+    const supportsHover = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!supportsHover || reduced) return;
 
-//let ticking = false;
-  //  let lastX = 0, lastY = 0;
+    let ticking = false;
+    let lastX = 0, lastY = 0;
 
-   // window.addEventListener(
-   //   "mousemove",
-//(e) => {
-     //   lastX = e.clientX;
-       // lastY = e.clientY;
-     //   document.body.classList.add("cursor-glow-active");
-      //  if (!ticking) {
-        //  requestAnimationFrame(() => {
-      //      glow.style.transform = `translate(${lastX}px, ${lastY}px) translate(-50%, -50%)`;
-      //      ticking = false;
-      //    });
-     //     ticking = true;
-   //     }
-  //    },
-    //  { passive: true }
- //   );
-   // document.addEventListener("mouseleave", () => document.body.classList.remove("cursor-glow-active"));
-//  }
-//
+    window.addEventListener(
+      "mousemove",
+      (e) => {
+        lastX = e.clientX;
+        lastY = e.clientY;
+        document.body.classList.add("cursor-glow-active");
+        if (!ticking) {
+          requestAnimationFrame(() => {
+            glow.style.transform = `translate(${lastX}px, ${lastY}px) translate(-50%, -50%)`;
+            ticking = false;
+          });
+          ticking = true;
+        }
+      },
+      { passive: true }
+    );
+    document.addEventListener("mouseleave", () => document.body.classList.remove("cursor-glow-active"));
+  }
+
   /* ==========================================================================
      PRELOADER — ~5s total, cycling messages, swipe-up reveal
      ========================================================================== */
