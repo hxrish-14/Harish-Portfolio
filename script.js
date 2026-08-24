@@ -23,12 +23,12 @@
       // two-letter fallback until a real image URL is added.
       logos: {
         adhiparasakthi:
-          "https://assets.allegiance-educare.com/colleges/thumb/250_250_1392964652adhaiprasakthi%20college%20art%20and%20science.png",
+          "Assets/APCAS LOGO 2.jpg",
         mgr: null, // source given was an Instagram profile page, not a direct image: https://www.instagram.com/mgreri/?hl=en
         kaashiv:
-          "https://media.licdn.com/dms/image/v2/C560BAQFC2jYbP2vMUw/company-logo_200_200/company-logo_200_200/0/1638609434663/kaashiv_infotech_logo",
+          "Assets/KAASHIV LOGO.jpg",
         brakesIndia:
-          "https://yt3.googleusercontent.com/7UhXyVBrm-Q736okMY7xZIAeAdpOP9xRsdojsoV1CaoNt0Ue4PzHa72AYwLgi9pB0HzhPB-d=s900-c-k-c0x00ffffff-no-rj",
+          "Assets/TSF LOGO.png",
       },
       // Project screenshots — add a direct https image URL once you have one;
       // until then the cards show a clean gradient placeholder.
@@ -49,14 +49,14 @@
     },
 
     resume: {
-      pdf: "https://raw.githubusercontent.com/hxrish-14/Harish-Portfolio/main/HARISH%20R%20-%20RESUME.pdf",
+      pdf: "Assets/HARISH R - RESUME.pdf",
       pdfVersioned:
-        "https://raw.githubusercontent.com/hxrish-14/Harish-Portfolio/216739781e8ab30521b020daa98d6448ecb3c7ed/HARISH%20R%20-%20RESUME.pdf",
+        "https://github.com/hxrish-14/Harish-Portfolio/blob/6dc03726240addf3316d0db1a78dc853223fae97/Assets/HARISH%20R%20-%20RESUME.pdf",
       fileName: "HARISH R - RESUME.pdf",
       // Shown automatically if the PDF hasn't loaded within pdfLoadTimeout.
       // Add an image (e.g. a JPG/PNG export of page 1) to assets/resume/ and
       // point this at it — left null until a real image is supplied.
-      previewImage: null, // e.g. "assets/resume/preview.jpg"
+      previewImage: "Assets/RESUME IMG.jpg", // e.g. "assets/resume/preview.jpg"
       pdfLoadTimeout: 3000,
       zoomMin: 0.5,
       zoomMax: 2.5,
