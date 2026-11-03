@@ -1,1178 +1,829 @@
-(() => {
-  "use strict";
+/* =====================================================================
+   Harish R — Portfolio · script.js
+   1 Config & data (edit here)  2 Utilities  3 Visuals  4 Rendering
+   5 Theme  6 Navigation  7 Routing/404  8 Network state  9 PDF export
+   10 Contact form  11 Project dialog  12 Reveal  13 Init
+   No eval(), no innerHTML: all dynamic text is inserted with textContent.
+   ===================================================================== */
+(function () {
+  'use strict';
 
-  /* =====================================================
-     EASY EDIT CONFIGURATION
-     Change values here first.
-     Do not edit the feature logic unless necessary.
-  ===================================================== */
-  const PORTFOLIO_CONFIG = {
+  /* ===================== 1. CONFIG & DATA ===================== */
 
-    identity: {
-      name: "Harish R",
-      email: "harishramesh004@gmail.com", // used for EVERY mailto: link on the site
+  /** Site-wide settings. Safe to edit. Nothing secret belongs here. */
+  var SITE = {
+    pdfFileName: 'Harish_R_Resume.pdf',
+    // jsPDF is loaded only when "Download Resume" is clicked. SRI hash was computed from the
+    // npm package jspdf@2.5.2 (dist/jspdf.umd.min.js), which jsDelivr serves unmodified.
+    jsPdf: {
+      url: 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js',
+      integrity: 'sha384-en/ztfPSRkGfME4KIm05joYXynqzUgbsG5nMrj/xEFAHXkeZfO3yMK8QQ+mP7p1/',
+      timeoutMs: 12000
     },
+    // Public Google Apps Script web-app URL that appends submissions to a Google Sheet.
+    // Leave '' to disable the form backend (the form then offers an email fallback).
+    contactEndpoint: 'https://script.google.com/macros/s/AKfycbwbi3x0HYjWl5PsVe8M68O8--fVv64WMg9TqqGR_NXgz2uYxxqDeE4E4-OGN7uxw08C/exec',
+    requestTimeoutMs: 10000,
+    maxRetries: 2
+  };
 
-    assets: {
-      profileImage:
-        "https://avatars.githubusercontent.com/u/141498620?s=400&u=a16fb899a144f90803bb071829715a427edfa6b8&v=4",
-      tabIcon: "https://cdn-icons-png.flaticon.com/128/17974/17974378.png",
-      // Education / experience logos — direct https image URLs only. A page
-      // link (like an Instagram profile) can't be used as an <img> source,
-      // so that one is left null with a comment; the site shows a clean
-      // two-letter fallback until a real image URL is added.
-      logos: {
-        adhiparasakthi:
-          "Assets/APCAS LOGO 2.jpg",
-        mgr: null, // source given was an Instagram profile page, not a direct image: https://www.instagram.com/mgreri/?hl=en
-        kaashiv:
-          "Assets/KAASHIV LOGO.jpg",
-        brakesIndia:
-          "Assets/TSF LOGO.png",
-      },
-      // Project screenshots — add a direct https image URL once you have one;
-      // until then the cards show a clean gradient placeholder.
-      projectImages: {
-        privateServer: null, // e.g. "assets/images/private-server.jpg"
-        babyshieldIot: null, // e.g. "assets/images/babyshield-iot.jpg"
-      },
-    },
-
-    links: {
-      github: "https://github.com/hxrish-14",
-      linkedin: "https://www.linkedin.com/in/harishr14/",
-      instagram: "https://instagram.com/hxrish_14",
-      naukri: "https://www.naukri.com/mnjuser/profile?id=&altresid",
-      server: "https://hxrish-14.github.io/HRS-Server/",
-      quickOpen: "https://github.com/hxrish-14", // Ctrl+Alt+Shift+S
-      spotifyPlaylist: "", // Ctrl+Alt+S — left empty on purpose, add your playlist URL
-    },
-
-    resume: {
-      pdf: "Assets/HARISH R - RESUME.pdf",
-      pdfVersioned:
-        "https://github.com/hxrish-14/Harish-Portfolio/blob/6dc03726240addf3316d0db1a78dc853223fae97/Assets/HARISH%20R%20-%20RESUME.pdf",
-      fileName: "HARISH R - RESUME.pdf",
-      // Shown automatically if the PDF hasn't loaded within pdfLoadTimeout.
-      // Add an image (e.g. a JPG/PNG export of page 1) to assets/resume/ and
-      // point this at it — left null until a real image is supplied.
-      previewImage: "Assets/RESUME IMG.jpg", // e.g. "assets/resume/preview.jpg"
-      pdfLoadTimeout: 3000,
-      zoomMin: 0.5,
-      zoomMax: 2.5,
-      zoomStep: 0.25,
-    },
-
-    backend: {
-      // Already deployed and live — the contact form posts here directly.
-      scriptUrl:
-        "https://script.google.com/macros/s/AKfycbwbi3x0HYjWl5PsVe8M68O8--fVv64WMg9TqqGR_NXgz2uYxxqDeE4E4-OGN7uxw08C/exec",
-    },
-
-    loading: {
-      imageLazyLoading: true,
-      resumeTimeout: 3000, // mirrors resume.pdfLoadTimeout, kept for clarity
-    },
-
-    // Each shortcut is independent: flip `enabled` off, or change the key
-    // combo / action, without touching any other shortcut or any logic below.
-    keyboardShortcuts: [
-      {
-        id: "resumePreview",
-        enabled: true,
-        combo: { ctrl: true, alt: false, shift: true, meta: false, key: "r" },
-        action: "openResumeModal",
-      },
-      {
-        id: "resumeDownload",
-        enabled: true,
-        combo: { ctrl: true, alt: false, shift: true, meta: false, key: "d" },
-        action: "downloadResume",
-      },
-      {
-        id: "quickOpen",
-        enabled: true,
-        combo: { ctrl: true, alt: true, shift: true, meta: false, key: "s" },
-        action: "openUrl",
-        url: "links.quickOpen",
-      },
-      {
-        id: "spotify",
-        enabled: true,
-        combo: { ctrl: true, alt: true, shift: false, meta: false, key: "s" },
-        action: "openUrl",
-        url: "links.spotifyPlaylist",
-      },
-      {
-        id: "hrsServer",
-        enabled: true,
-        // Windows key + Ctrl + Shift + S
-        combo: { ctrl: true, alt: false, shift: true, meta: true, key: "s" },
-        action: "openUrl",
-        url: "links.server",
-      },
+  /**
+   * SINGLE SOURCE OF TRUTH for the resume. The website sections, the on-page resume, the
+   * print view and the generated PDF are all rendered from this object.
+   * Use **double asterisks** to mark bold text inside summary strings.
+   */
+  var RESUME = {
+    name: 'Harish R',
+    location: 'Ranipet, Tamil Nadu, India',
+    email: 'harishramesh004@gmail.com',
+    phone: '+91 96550 96127',
+    phoneHref: '+919655096127',
+    links: [
+      { label: 'LinkedIn', url: 'https://www.linkedin.com/in/harishr14/', display: 'linkedin.com/in/harishr14' },
+      { label: 'GitHub', url: 'https://github.com/hxrish-14', display: 'github.com/hxrish-14' }
     ],
-
-    deepFocus: [
-      {
-        name: "Excel",
-        tone: "excel",
-        icon: "excel",
-        blurb: "Modelling, formulas and reporting workflows built for people who live in spreadsheets.",
-        url: "https://www.microsoft.com/en/microsoft-365/excel",
-      },
-      {
-        name: "Power BI",
-        tone: "powerbi",
-        icon: "powerbi",
-        blurb: "Turning raw operational data into dashboards that are actually read.",
-        url: "https://www.microsoft.com/en-us/power-platform/products/power-bi",
-      },
-      {
-        name: "Power Automate",
-        tone: "automate",
-        icon: "automate",
-        blurb: "Scripting the boring parts away — desktop flows and cloud triggers alike.",
-        url: "https://www.microsoft.com/en-us/power-platform/products/power-automate",
-      },
+    summary: [
+      'MCA graduate skilled in **Power BI, SQL, Data Visualization, and Power Automate**, with experience in manufacturing operations.',
+      'Experienced in **operational data analysis, dashboard development, workflow automation, and structured data management** across manufacturing and internship environments.'
     ],
-
-    skills: {
-      Frontend: [
-        { name: "HTML", icon: "code" },
-        { name: "CSS", icon: "layers" },
-      ],
-      Backend: [
-        { name: "JavaScript", icon: "braces" },
-        { name: "Python", icon: "terminal" },
-      ],
-      Database: [
-        { name: "SQL", icon: "database" },
-        { name: "Supabase", icon: "server" },
-      ],
-      Hosting: [{ name: "GitHub", icon: "github" }],
-      Visualization: [
-        { name: "Canva", icon: "palette" },
-        { name: "Microsoft Office", icon: "file-text" },
-      ],
-      Automation: [
-        { name: "Power Automate Desktop", icon: "workflow" },
-        { name: "Power Automate Cloud", icon: "cloud" },
-      ],
-    },
-
-    // Newest first. Add another object to extend — the racetrack, logo,
-    // and progress-line animation all render from this array automatically.
-    education: [
-      {
-        period: "2024 – 2026",
-        name: "MCA",
-        institution: "Dr. M.G.R. Educational and Research Institute",
-        description: "Postgraduate study deepening software engineering, systems and application-development fundamentals.",
-        logoKey: "mgr",
-      },
-      {
-        period: "2021 – 2024",
-        name: "BCA",
-        institution: "Adhiparasakthi College of Arts and Science",
-        description: "Undergraduate foundation across programming, databases and computer applications.",
-        logoKey: "adhiparasakthi",
-      },
-    ],
-
-    // Newest first — same add-one-object-to-extend behavior as education.
     experience: [
       {
-        period: "Current",
-        name: "Secretary to VP",
-        institution: "Brakes India, TSF",
-        description: "Supporting executive operations while building software skills alongside the role.",
-        logoKey: "brakesIndia",
+        title: 'Executive Assistant Trainee to the Head Operations',
+        org: 'Brakes India', place: 'Sholinghur', period: 'Present',
+        bullets: ['Analysed site-level operational data and developed interactive dashboards and structured data management solutions to support data-driven decision-making.']
       },
       {
-        period: "Apr – Jun 2025",
-        name: "Full-Stack Python Developer Intern",
-        institution: "Kaashiv Infotech",
-        description: "Hands-on internship building full-stack features end-to-end with Python.",
-        logoKey: "kaashiv",
-      },
+        title: 'Full Stack Python Intern',
+        org: 'Kaashiv Infotech', place: 'Chennai', period: '2025',
+        bullets: ['Developed responsive, user-friendly web pages using frontend technologies, applying programming fundamentals and UI design principles to deliver clean and functional interfaces.']
+      }
     ],
-
+    education: [
+      { degree: 'Master of Computer Applications', short: 'MCA', school: 'Dr. M.G.R. Educational and Research Institute', place: 'Chennai', period: '2024–2026', grade: 'CGPA: 8.9/10' },
+      { degree: 'Bachelor of Computer Applications', short: 'BCA', school: 'Adhiparasakthi College of Arts and Science', place: 'Kalavai', period: '2021–2024', grade: 'CGPA: 7.0/10' },
+      { degree: 'Higher Secondary Certificate', short: 'HSC', school: 'Sri Divya Chaitanya Matric Higher Secondary School', place: 'Sholinghur', period: '2021', grade: 'Percentage: 82%', minor: true }
+    ],
+    // section: where the group appears on the website ('skills' | 'technologies' | 'tools')
+    skills: [
+      { group: 'Data Analytics', section: 'skills', items: ['Power BI', 'SQL', 'Data Visualization', 'Structured Data Management'] },
+      { group: 'Automation', section: 'skills', items: ['Microsoft Power Automate (Web and Cloud)', 'Macros & Office Scripts'] },
+      { group: 'Programming and Web', section: 'technologies', items: ['HTML', 'CSS', 'JavaScript', 'Python'] },
+      { group: 'Tools', section: 'tools', items: ['Microsoft Office', 'GitHub', 'VS Code', 'Canva'] }
+    ],
     projects: [
       {
-        name: "Private Custom Server",
-        description: "A self-hosted server built and configured from scratch for personal projects and experiments.",
-        imageKey: "privateServer",
-        url: "#",
+        id: 'powerbi', kind: 'dashboard', category: 'Business intelligence',
+        title: 'Power BI Dashboard for Production & Rejection Monitoring',
+        description: 'Designed an interactive dashboard to analyse production output, losses, rejection trends, and root causes for clear operational reporting.',
+        photo: null // optional: a direct https image URL (e.g. from Unsplash/Pexels). Falls back to the built-in illustration.
       },
       {
-        name: "Babyshield IOT",
-        description: "An IoT-based safety concept exploring sensor data and automated alerts to protect what matters most.",
-        imageKey: "babyshieldIot",
-        url: "#",
+        id: 'manpower', kind: 'workforce', category: 'Workforce analytics',
+        title: 'Manpower Report',
+        description: 'Developed a workforce dashboard to analyse manpower data, track key workforce categories, and support HR reporting and data-driven decisions.',
+        photo: null
       },
+      {
+        id: 'babyshield', kind: 'iot', category: 'IoT & mobile',
+        title: 'Baby Shield IoT – Infant Monitoring and Notification System',
+        description: 'Developed an IoT-based monitoring system integrating real-time device data, a mobile application, and automated notifications for timely status updates.',
+        photo: null
+      }
     ],
+    softSkills: ['Communication', 'Teamwork', 'Problem-Solving', 'Adaptability']
   };
 
-  /* =====================================================
-     UTILITIES
-  ===================================================== */
-  function isHttpsUrl(url) {
-    return typeof url === "string" && /^https:\/\//i.test(url);
+  var ROUTES = ['home', 'about', 'skills', 'experience', 'education', 'projects', 'tools', 'resume', 'contact', 'main'];
+  var THEME_KEY = 'hr-theme';
+
+  /* ===================== 2. UTILITIES ===================== */
+
+  var $ = function (sel, root) { return (root || document).querySelector(sel); };
+  var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
+
+  /** Create an element. props.text uses textContent; never HTML. */
+  function h(tag, props) {
+    var el = document.createElement(tag);
+    if (props) {
+      Object.keys(props).forEach(function (k) {
+        var v = props[k];
+        if (v === null || v === undefined || v === false) return;
+        if (k === 'class') el.className = v;
+        else if (k === 'text') el.textContent = v;
+        else if (k.slice(0, 2) === 'on' && typeof v === 'function') el.addEventListener(k.slice(2), v);
+        else el.setAttribute(k, v === true ? '' : String(v));
+      });
+    }
+    for (var i = 2; i < arguments.length; i++) append(el, arguments[i]);
+    return el;
   }
-  function isUsableUrl(url) {
-    // Local relative paths (assets/...) are fine too, not just https.
-    return typeof url === "string" && url.length > 0 && (isHttpsUrl(url) || /^assets\//i.test(url));
+  function append(el, kid) {
+    if (kid === null || kid === undefined || kid === false) return;
+    if (Array.isArray(kid)) { kid.forEach(function (k) { append(el, k); }); return; }
+    el.appendChild(typeof kid === 'object' && kid.nodeType ? kid : document.createTextNode(String(kid)));
   }
-  function safe(fn) {
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  function s(tag, attrs) {
+    var el = document.createElementNS(SVG_NS, tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) { el.setAttribute(k, attrs[k]); });
+    for (var i = 2; i < arguments.length; i++) append(el, arguments[i]);
+    return el;
+  }
+  function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); return el; }
+
+  /** Only https:, mailto: and tel: URLs are ever used for configurable links. */
+  function safeUrl(url) {
     try {
-      fn();
-    } catch (err) {
-      console.warn("[portfolio] non-fatal init error:", err);
-    }
+      var u = new URL(url, location.href);
+      return (u.protocol === 'https:' || u.protocol === 'mailto:' || u.protocol === 'tel:') ? u.href : null;
+    } catch (e) { return null; }
   }
-  function mailtoUrl(email, subject, body) {
-    const params = [];
-    if (subject) params.push("subject=" + encodeURIComponent(subject));
-    if (body) params.push("body=" + encodeURIComponent(body));
-    return `mailto:${email}${params.length ? "?" + params.join("&") : ""}`;
+  function extLink(label, url, cls) {
+    var href = safeUrl(url);
+    if (!href) return h('span', { text: label, class: cls });
+    return h('a', { href: href, target: '_blank', rel: 'noopener noreferrer', class: cls, text: label });
   }
-  // Resolve a dotted path like "links.quickOpen" against PORTFOLIO_CONFIG.
-  function resolveConfigPath(path) {
-    return path.split(".").reduce((acc, key) => (acc && acc[key] !== undefined ? acc[key] : null), PORTFOLIO_CONFIG);
-  }
-  function isTypingTarget(el) {
-    if (!el) return false;
-    const tag = (el.tagName || "").toLowerCase();
-    return tag === "input" || tag === "textarea" || el.isContentEditable;
-  }
-
-  const ICONS = {
-    code: '<path d="M9 18l-6-6 6-6"/><path d="M15 6l6 6-6 6"/>',
-    layers: '<path d="M12 2l9 5-9 5-9-5 9-5z"/><path d="M3 12l9 5 9-5"/><path d="M3 17l9 5 9-5"/>',
-    braces: '<path d="M8 3a3 3 0 0 0-3 3v3a2 2 0 0 1-2 2 2 2 0 0 1 2 2v3a3 3 0 0 0 3 3"/><path d="M16 3a3 3 0 0 1 3 3v3a2 2 0 0 0 2 2 2 2 0 0 0-2 2v3a3 3 0 0 1-3 3"/>',
-    terminal: '<path d="M4 4h16v16H4z"/><path d="M8 9l3 3-3 3"/><path d="M13 15h4"/>',
-    database: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
-    server: '<rect x="3" y="4" width="18" height="7" rx="1.5"/><rect x="3" y="13" width="18" height="7" rx="1.5"/><circle cx="7" cy="7.5" r="0.6"/><circle cx="7" cy="16.5" r="0.6"/>',
-    github: '<path d="M12 2a10 10 0 0 0-3.16 19.5c.5.1.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.46-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.34 1.09 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.56-1.11-4.56-4.95 0-1.1.39-1.99 1.03-2.69-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.4 9.4 0 0 1 5 0c1.91-1.3 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.6 1.03 2.69 0 3.85-2.34 4.7-4.57 4.95.36.31.68.92.68 1.85v2.75c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/>',
-    palette: '<circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10.5" r="1.1"/><circle cx="12" cy="8" r="1.1"/><circle cx="15.5" cy="10.5" r="1.1"/><path d="M12 21a2 2 0 0 1-2-2c0-1 .8-1.5.8-2.5S10 15 12 15h4a3 3 0 0 0 3-3 9 9 0 1 0-7 9z"/>',
-    "file-text": '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8M8 9h2"/>',
-    workflow: '<rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/><path d="M9.5 10v4a2 2 0 0 0 2 2h2.5"/>',
-    cloud: '<path d="M7 18a4.5 4.5 0 0 1-.5-9 5.5 5.5 0 0 1 10.6-1.8A4 4 0 0 1 17 18H7z"/>',
-    excel: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9l8 8M16 9l-8 8"/>',
-    powerbi: '<path d="M5 20V10M11 20V4M17 20v-7"/>',
-    automate: '<path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/>',
-  };
-
-  /* =====================================================
-     IMAGE LOADING (apply config-driven images + graceful fallbacks)
-  ===================================================== */
-  function applyConfig() {
-    const favicon = document.getElementById("favicon");
-    if (favicon && isUsableUrl(PORTFOLIO_CONFIG.assets.tabIcon)) favicon.setAttribute("href", PORTFOLIO_CONFIG.assets.tabIcon);
-
-    const heroPhoto = document.getElementById("heroPhoto");
-    if (heroPhoto && isUsableUrl(PORTFOLIO_CONFIG.assets.profileImage)) {
-      heroPhoto.src = PORTFOLIO_CONFIG.assets.profileImage;
-      heroPhoto.onerror = () => {
-        heroPhoto.closest(".hero-photo").innerHTML = '<span class="hero-photo-fallback">HR</span>';
-      };
-    }
-
-    const hireMe = document.getElementById("hireMeBtn");
-    if (hireMe && isUsableUrl(PORTFOLIO_CONFIG.links.linkedin)) hireMe.href = PORTFOLIO_CONFIG.links.linkedin;
-
-    const linkedinPill = document.getElementById("linkedinPill");
-    if (linkedinPill && isUsableUrl(PORTFOLIO_CONFIG.links.linkedin)) linkedinPill.href = PORTFOLIO_CONFIG.links.linkedin;
-
-    const dropMail = document.getElementById("dropMailBtn");
-    if (dropMail && PORTFOLIO_CONFIG.identity.email) dropMail.href = mailtoUrl(PORTFOLIO_CONFIG.identity.email);
-
-    const footerEmail = document.getElementById("footerEmail");
-    if (footerEmail && PORTFOLIO_CONFIG.identity.email) footerEmail.href = mailtoUrl(PORTFOLIO_CONFIG.identity.email);
-
-    const footerLinkedin = document.getElementById("footerLinkedin");
-    if (footerLinkedin && isUsableUrl(PORTFOLIO_CONFIG.links.linkedin)) footerLinkedin.href = PORTFOLIO_CONFIG.links.linkedin;
-
-    const footerNaukri = document.getElementById("footerNaukri");
-    if (footerNaukri && isUsableUrl(PORTFOLIO_CONFIG.links.naukri)) footerNaukri.href = PORTFOLIO_CONFIG.links.naukri;
-
-    const footerGithub = document.getElementById("footerGithub");
-    if (footerGithub && isUsableUrl(PORTFOLIO_CONFIG.links.github)) footerGithub.href = PORTFOLIO_CONFIG.links.github;
-
-    const footerInstagram = document.getElementById("footerInstagram");
-    if (footerInstagram && isUsableUrl(PORTFOLIO_CONFIG.links.instagram)) footerInstagram.href = PORTFOLIO_CONFIG.links.instagram;
-
-    // No trailing period after the year, per request.
-    const footerCopyright = document.getElementById("footerCopyright");
-    if (footerCopyright) footerCopyright.textContent = `© ${new Date().getFullYear()}`;
-  }
-
-  /* =====================================================
-     DEEPFOCUS (toolkit loop + tone-coded tiles)
-  ===================================================== */
-  function renderSkills() {
-    const track = document.getElementById("skillsTrack");
-    if (!track) return;
-    const flat = [];
-    Object.entries(PORTFOLIO_CONFIG.skills).forEach(([category, items]) => {
-      items.forEach((item) => flat.push({ ...item, category }));
+  /** Splits **bold** markers into text/strong nodes (no HTML parsing). */
+  function richText(str) {
+    var frag = document.createDocumentFragment();
+    str.split('**').forEach(function (part, i) {
+      if (!part) return;
+      frag.appendChild(i % 2 ? h('strong', { text: part }) : document.createTextNode(part));
     });
-    const lazy = PORTFOLIO_CONFIG.loading.imageLazyLoading;
-    const chipHTML = (item) => `
-      <div class="skill-chip">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${ICONS[item.icon] || ICONS.code}</svg>
-        <span>${item.name}</span>
-        <span class="cat">${item.category}</span>
-      </div>`;
-    track.innerHTML = flat.map(chipHTML).join("") + flat.map(chipHTML).join("");
-    void lazy; // chips use inline SVG, not <img>, so lazy-loading doesn't apply here
+    return frag;
+  }
+  function plain(str) { return str.replace(/\*\*/g, ''); }
+  function initials(name) {
+    var w = name.replace(/[()]/g, '').split(/\s+/);
+    return (w.length > 1 ? w[0][0] + w[1][0] : w[0][0]).toUpperCase();
   }
 
-  function renderDeepFocus() {
-    const el = document.getElementById("skillsHighlightRow");
-    if (!el) return;
-    el.innerHTML = PORTFOLIO_CONFIG.deepFocus
-      .map((item) => {
-        const tag = item.url ? "a" : "div";
-        const attrs = item.url ? `href="${item.url}" target="_blank" rel="noopener noreferrer"` : "";
-        return `
-        <${tag} class="skill-highlight skill-highlight--${item.tone} reveal-up" ${attrs}>
-          <span class="skill-highlight-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[item.icon] || ""}</svg>
-          </span>
-          <span class="skill-highlight-eyebrow">Deep Focus</span>
-          <span class="skill-highlight-name">${item.name}</span>
-          <p>${item.blurb}</p>
-        </${tag}>`;
-      })
-      .join("");
-  }
-
-  /* =====================================================
-     EDUCATION / EXPERIENCE (racetrack render + measured progress line)
-  ===================================================== */
-  function logoMarkup(entry, fallbackText) {
-    const initials = fallbackText.slice(0, 2).toUpperCase();
-    const url = entry.logoKey ? PORTFOLIO_CONFIG.assets.logos[entry.logoKey] : null;
-    const lazyAttr = PORTFOLIO_CONFIG.loading.imageLazyLoading ? 'loading="lazy" decoding="async"' : "";
-    if (url && isUsableUrl(url)) {
-      return `<div class="track-logo"><img src="${url}" alt="${fallbackText} logo" ${lazyAttr} draggable="false" onerror="this.parentElement.innerHTML='${initials}'" /></div>`;
-    }
-    return `<div class="track-logo">${initials}</div>`;
-  }
-
-  function renderRacetrack(containerId, entries) {
-    const el = document.getElementById(containerId);
-    if (!el || !entries) return;
-
-    const nodeHTML = (entry) => `
-      <div class="track-node reveal-up">
-        ${logoMarkup(entry, entry.institution)}
-        <span class="track-period">${entry.period}</span>
-        <span class="track-name">${entry.name}</span>
-        <span class="track-sub">${entry.institution}</span>
-        <span class="track-desc">${entry.description || ""}</span>
-      </div>`;
-
-    const listNodeHTML = (entry) => `
-      <div class="track-node reveal-up">
-        ${logoMarkup(entry, entry.institution)}
-        <div class="track-meta">
-          <span class="track-period">${entry.period}</span>
-          <span class="track-name">${entry.name}</span>
-          <span class="track-sub">${entry.institution}</span>
-          <span class="track-desc">${entry.description || ""}</span>
-        </div>
-      </div>`;
-
-    el.innerHTML = `
-      <div class="track-line" aria-hidden="true"></div>
-      <div class="track-progress" aria-hidden="true"></div>
-      <div class="track-row">${entries.map(nodeHTML).join("")}</div>
-      <div class="track-list">${entries.map(listNodeHTML).join("")}</div>
-    `;
-
-    positionTrackProgress(containerId);
-  }
-
-  // Measures the actual first/last .track-logo centers so the connecting
-  // line always terminates exactly at the logos — never over/undershoots,
-  // regardless of container padding, node count, or screen size.
-  const trackObservers = {};
-  function positionTrackProgress(containerId) {
-    const el = document.getElementById(containerId);
-    if (!el) return;
-    const row = el.querySelector(".track-row");
-    const line = el.querySelector(".track-line");
-    const progress = el.querySelector(".track-progress");
-    if (!row || !line || !progress) return;
-
-    const logos = row.querySelectorAll(".track-logo");
-    if (logos.length < 2) return;
-
-    const containerRect = el.getBoundingClientRect();
-    const firstRect = logos[0].getBoundingClientRect();
-    const lastRect = logos[logos.length - 1].getBoundingClientRect();
-
-    const firstCenter = firstRect.left + firstRect.width / 2 - containerRect.left;
-    const lastCenter = lastRect.left + lastRect.width / 2 - containerRect.left;
-    const left = Math.min(firstCenter, lastCenter);
-    const width = Math.abs(lastCenter - firstCenter);
-
-    line.style.left = left + "px";
-    line.style.width = width + "px";
-    line.style.opacity = "1";
-    progress.style.left = left + "px";
-    progress.style.width = width + "px";
-    progress.classList.add("is-ready");
-
-    // Animate the fill in like a real progress draw, once scrolled into view.
-    if (!trackObservers[containerId] && "IntersectionObserver" in window) {
-      trackObservers[containerId] = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              progress.classList.add("is-drawn");
-              trackObservers[containerId].disconnect();
-            }
-          });
-        },
-        { threshold: 0.4 }
-      );
-      trackObservers[containerId].observe(el);
-    } else if (!("IntersectionObserver" in window)) {
-      progress.classList.add("is-drawn");
-    }
-  }
-
-  function repositionAllTracks() {
-    positionTrackProgress("educationTrack");
-    positionTrackProgress("experienceTrack");
-  }
-
-  /* =====================================================
-     PROJECTS
-  ===================================================== */
-  function renderProjects() {
-    const el = document.getElementById("projectGrid");
-    if (!el) return;
-    const lazyAttr = PORTFOLIO_CONFIG.loading.imageLazyLoading ? 'loading="lazy" decoding="async"' : "";
-
-    el.innerHTML = PORTFOLIO_CONFIG.projects
-      .map((project, i) => {
-        const imageUrl = project.imageKey ? PORTFOLIO_CONFIG.assets.projectImages[project.imageKey] : null;
-        const placeholderClass = i % 2 === 0 ? "project-image--placeholder-1" : "project-image--placeholder-2";
-        const imageHTML =
-          imageUrl && isUsableUrl(imageUrl)
-            ? `<img src="${imageUrl}" alt="${project.name}" ${lazyAttr} draggable="false" onerror="this.parentElement.className='project-image ${placeholderClass}';this.remove();" />`
-            : "";
-        const href = project.url && project.url !== "#" ? project.url : "#";
-        const linkAttrs = href !== "#" ? `target="_blank" rel="noopener noreferrer"` : "";
-
-        return `
-        <a class="project-card reveal-up" href="${href}" ${linkAttrs}>
-          <div class="project-image ${imageUrl ? "" : placeholderClass}">${imageHTML}</div>
-          <div class="project-overlay">
-            <span class="project-name">${project.name}</span>
-            <span class="project-desc">${project.description || ""}</span>
-          </div>
-        </a>`;
-      })
-      .join("");
-  }
-
-  /* =====================================================
-     THEME
-  ===================================================== */
-  function initTheme() {
-    const toggle = document.getElementById("themeToggle");
-    const root = document.body;
-    let stored = null;
-    try { stored = localStorage.getItem("hr-theme"); } catch (e) {}
-
-    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const initial = stored || (prefersDark ? "dark" : "light");
-    root.setAttribute("data-theme", initial);
-    if (toggle) toggle.setAttribute("aria-checked", initial === "dark" ? "true" : "false");
-    if (!toggle) return;
-
-    toggle.addEventListener("click", () => {
-      const current = root.getAttribute("data-theme");
-      const next = current === "dark" ? "light" : "dark";
-      root.setAttribute("data-theme", next);
-      toggle.setAttribute("aria-checked", next === "dark" ? "true" : "false");
-      toggle.setAttribute("aria-label", next === "dark" ? "Switch to light theme" : "Switch to dark theme");
-      try { localStorage.setItem("hr-theme", next); } catch (e) {}
-    });
-  }
-
-  /* =====================================================
-     NAVIGATION (header scroll state, active link, sliding underline, smooth scroll)
-  ===================================================== */
-  function initScrollChrome() {
-    const header = document.getElementById("siteHeader");
-    const signal = document.getElementById("signalFill");
-    const navLinks = document.querySelectorAll(".nav-link, .mobile-menu a");
-    const sections = document.querySelectorAll("[data-section]");
-    const root = document.documentElement;
-
-    let ticking = false;
-    let lastY = window.scrollY;
-    let blurTimeout = null;
-
-    function update() {
-      const y = window.scrollY;
-      if (header) header.classList.toggle("is-scrolled", y > 40);
-
-      if (signal) {
-        const doc = document.documentElement;
-        const total = doc.scrollHeight - doc.clientHeight;
-        signal.style.height = (total > 0 ? Math.min(100, (y / total) * 100) : 0) + "%";
-      }
-
-      const delta = Math.abs(y - lastY);
-      lastY = y;
-      const blurAmount = Math.min(delta * 0.012, 1.2);
-      root.style.setProperty("--scroll-blur", blurAmount + "px");
-      clearTimeout(blurTimeout);
-      blurTimeout = setTimeout(() => root.style.setProperty("--scroll-blur", "0px"), 100);
-
-      let activeId = null;
-      sections.forEach((sec) => {
-        const rect = sec.getBoundingClientRect();
-        if (rect.top <= 140 && rect.bottom >= 140) activeId = sec.dataset.section;
-      });
-      if (activeId) {
-        navLinks.forEach((link) => link.classList.toggle("active", link.dataset.nav === activeId));
-        if (!window.__navHovering) positionIndicatorToActive();
-      }
-      ticking = false;
-    }
-
-    window.addEventListener("scroll", () => {
-      if (!ticking) { requestAnimationFrame(update); ticking = true; }
-    }, { passive: true });
-    update();
-  }
-
-  // Shared sliding hover-underline — deliberately scoped to `.nav-link` ONLY,
-  // so the Resume button (`.nav-cta`) never receives it (it keeps its own
-  // separate pill hover style defined in CSS).
-  function initNavIndicator() {
-    const nav = document.getElementById("primaryNav");
-    const indicator = document.getElementById("navIndicator");
-    if (!nav || !indicator) return;
-
-    function position(el) {
-      if (!el) { indicator.style.opacity = "0"; return; }
-      indicator.style.left = el.offsetLeft + "px";
-      indicator.style.width = el.offsetWidth + "px";
-      indicator.style.opacity = "1";
-    }
-
-    nav.querySelectorAll(".nav-link").forEach((link) => {
-      link.addEventListener("mouseenter", () => {
-        window.__navHovering = true;
-        position(link);
-      });
-    });
-    nav.addEventListener("mouseleave", () => {
-      window.__navHovering = false;
-      positionIndicatorToActive();
-    });
-    window.addEventListener("resize", () => positionIndicatorToActive());
-
-    window.__positionNavIndicator = position;
-    positionIndicatorToActive();
-  }
-  function positionIndicatorToActive() {
-    const nav = document.getElementById("primaryNav");
-    if (!nav || !window.__positionNavIndicator) return;
-    const active = nav.querySelector(".nav-link.active");
-    window.__positionNavIndicator(active);
-  }
-
-  function initMorphNav() {
-    const links = document.querySelectorAll('a[href^="#"]:not([href="#"])');
-    links.forEach((link) => {
-      link.addEventListener("click", (e) => {
-        const id = link.getAttribute("href");
-        const target = document.querySelector(id);
-        if (!target) return;
-        e.preventDefault();
-
-        const scrollToTarget = () => {
-          target.scrollIntoView({ behavior: "smooth", block: "start" });
-          history.pushState(null, "", id);
-        };
-
-        if (document.startViewTransition && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-          document.startViewTransition(() => scrollToTarget());
-        } else {
-          scrollToTarget();
-        }
-      });
-    });
-  }
-
-  function initMobileMenu() {
-    const btn = document.getElementById("menuToggle");
-    const menu = document.getElementById("mobileMenu");
-    if (!btn || !menu) return;
-
-    const close = () => {
-      btn.classList.remove("is-open");
-      menu.classList.remove("is-open");
-      btn.setAttribute("aria-expanded", "false");
-      menu.setAttribute("aria-hidden", "true");
-      document.body.style.overflow = "";
-    };
-    const open = () => {
-      btn.classList.add("is-open");
-      menu.classList.add("is-open");
-      btn.setAttribute("aria-expanded", "true");
-      menu.setAttribute("aria-hidden", "false");
-      document.body.style.overflow = "hidden";
-    };
-
-    btn.addEventListener("click", () => (menu.classList.contains("is-open") ? close() : open()));
-    menu.querySelectorAll("a").forEach((a) => a.addEventListener("click", close));
-  }
-
-  /* =====================================================
-     HOME (marquee font-ready gating + entry animation + scroll reveal)
-  ===================================================== */
-  function initMarqueeFontGate() {
-    const root = document.documentElement;
-    let settled = false;
-    const settle = () => {
-      if (settled) return;
-      settled = true;
-      root.classList.add("fonts-ready");
-    };
-    if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(settle).catch(settle);
-    }
-    // Safety net: never let a font-loading edge case block the marquee forever.
-    setTimeout(settle, 1200);
-  }
-
-  function initReveal() {
-    const targets = document.querySelectorAll(".reveal-up:not(.is-visible), .reveal-mask:not(.is-visible)");
-    if (!("IntersectionObserver" in window) || targets.length === 0) {
-      targets.forEach((t) => t.classList.add("is-visible"));
-      return;
-    }
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("is-visible");
-            io.unobserve(entry.target);
-          }
-        });
+  /** localStorage with an in-memory fallback if storage is unavailable or throws. */
+  var store = (function () {
+    var mem = {}, ok = true;
+    try { localStorage.setItem('__probe', '1'); localStorage.removeItem('__probe'); } catch (e) { ok = false; }
+    return {
+      get: function (k) {
+        if (ok) { try { var v = localStorage.getItem(k); if (v !== null) return v; } catch (e) { ok = false; } }
+        return Object.prototype.hasOwnProperty.call(mem, k) ? mem[k] : null;
       },
-      { threshold: 0.15, rootMargin: "0px 0px -8% 0px" }
-    );
-    targets.forEach((t) => { if (!t.closest(".hero")) io.observe(t); });
-  }
-
-  function playEntryAnimation() {
-    const hero = document.querySelector(".hero");
-    if (!hero) return;
-    const targets = hero.querySelectorAll(".reveal-up, .reveal-mask");
-    targets.forEach((el, i) => {
-      el.style.transitionDelay = `${i * 90}ms`;
-      requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("is-visible")));
-    });
-  }
-
-  function initPreloader() {
-    const pre = document.getElementById("preloader");
-    const bar = document.getElementById("preloaderBar");
-    const msgEl = document.getElementById("preloaderMessage");
-    if (!pre || !bar) {
-      playEntryAnimation();
-      return;
-    }
-
-    const messages = [
-      "Politely arguing with a PM about spacing…",
-      "Blaming the developers for it instead…",
-      "Asking NASA for the internet speed...",
-    ];
-    let msgIndex = 0;
-    const TOTAL_MS = 5000;
-    const msgTimer = setInterval(() => {
-      msgIndex = (msgIndex + 1) % messages.length;
-      if (msgEl) {
-        msgEl.style.opacity = "0";
-        setTimeout(() => {
-          msgEl.textContent = messages[msgIndex];
-          msgEl.style.opacity = "1";
-        }, 180);
+      set: function (k, v) {
+        mem[k] = v;
+        if (ok) { try { localStorage.setItem(k, v); } catch (e) { ok = false; } }
       }
-    }, TOTAL_MS / messages.length);
-
-    const start = performance.now();
-    function tick(now) {
-      const elapsed = now - start;
-      const progress = Math.min(100, (elapsed / (TOTAL_MS - 300)) * 100);
-      bar.style.width = progress + "%";
-      if (elapsed < TOTAL_MS - 300) requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-
-    const hide = () => {
-      clearInterval(msgTimer);
-      bar.style.width = "100%";
-      pre.classList.add("is-hidden");
-      playEntryAnimation();
     };
+  })();
 
-    setTimeout(hide, TOTAL_MS);
+  /** Reusable loading / empty state components. */
+  function loadingState(msg) {
+    return h('div', { class: 'state-block', role: 'status' }, h('div', { class: 'spinner', 'aria-hidden': 'true' }), h('p', { text: msg || 'Loading…' }));
+  }
+  function emptyState(msg, actionLabel, onAction) {
+    return h('div', { class: 'state-block' },
+      h('p', { text: msg }),
+      actionLabel ? h('button', { type: 'button', class: 'btn btn-secondary btn-small', text: actionLabel, onclick: onAction }) : null);
   }
 
-  /* =====================================================
-     RESUME (PDF-first preview, timed fallback to image, zoom, download, shortcuts)
-  ===================================================== */
-  let resumeFrameRequested = false;
-  let resumeZoom = 1;
+  /* ===================== 3. VISUALS (original illustrative concepts) ===================== */
 
-  function applyResumeZoom() {
-    const layer = document.getElementById("resumeZoomLayer");
-    const label = document.getElementById("resumeZoomLevel");
-    if (layer) layer.style.transform = `scale(${resumeZoom})`;
-    if (label) label.textContent = Math.round(resumeZoom * 100) + "%";
-  }
-  function setResumeZoom(next) {
-    const cfg = PORTFOLIO_CONFIG.resume;
-    resumeZoom = Math.min(cfg.zoomMax, Math.max(cfg.zoomMin, next));
-    applyResumeZoom();
-  }
-  function resetResumeZoom() {
-    resumeZoom = 1;
-    applyResumeZoom();
-  }
+  var VIZ = {
+    dashboard: { label: 'Illustrative concept of a production and rejection monitoring dashboard with KPI tiles, bar chart and trend line' },
+    workforce: { label: 'Illustrative concept of a workforce analytics dashboard with a category donut chart and headcount bars' },
+    iot: { label: 'Illustrative concept of an infant monitoring device sending alerts to a mobile phone' }
+  };
 
-  function showResumeFallbackImage(statusEl, frame, img) {
-    frame.hidden = true;
-    const previewImage = PORTFOLIO_CONFIG.resume.previewImage;
-    if (isUsableUrl(previewImage)) {
-      img.onload = () => { statusEl.hidden = true; img.hidden = false; };
-      img.onerror = () => {
-        statusEl.textContent = "Couldn't load the resume preview. Use Download instead.";
-        statusEl.classList.add("is-error");
-      };
-      img.src = previewImage;
+  function vizSvg(kind) {
+    var svg = s('svg', { viewBox: '0 0 320 200', role: 'img', 'aria-label': VIZ[kind].label, preserveAspectRatio: 'xMidYMid slice', focusable: 'false' });
+    svg.appendChild(s('rect', { width: 320, height: 200, class: 'viz-bg' }));
+    var i;
+    if (kind === 'dashboard') {
+      [0, 1, 2].forEach(function (n) {
+        svg.appendChild(s('rect', { x: 14 + n * 102, y: 14, width: 94, height: 38, rx: 7, class: 'viz-card' }));
+        svg.appendChild(s('rect', { x: 22 + n * 102, y: 24, width: 34 + n * 8, height: 7, rx: 3, class: n === 1 ? 'viz-c3' : 'viz-c1' }));
+        svg.appendChild(s('rect', { x: 22 + n * 102, y: 37, width: 52, height: 5, rx: 2.5, class: 'viz-c2' }));
+      });
+      svg.appendChild(s('rect', { x: 14, y: 64, width: 292, height: 122, rx: 9, class: 'viz-card' }));
+      var hts = [44, 64, 50, 82, 60, 94, 72], pts = [];
+      for (i = 0; i < hts.length; i++) {
+        var x = 30 + i * 38;
+        svg.appendChild(s('rect', { x: x, y: 174 - hts[i], width: 24, height: hts[i], rx: 4, class: i === 5 ? 'viz-c3' : 'viz-c2' }));
+        pts.push((x + 12) + ',' + (168 - hts[i] - 8 - (i % 2) * 4));
+      }
+      svg.appendChild(s('polyline', { points: pts.join(' '), class: 'viz-line' }));
+    } else if (kind === 'workforce') {
+      svg.appendChild(s('rect', { x: 14, y: 14, width: 140, height: 172, rx: 9, class: 'viz-card' }));
+      var C = 2 * Math.PI * 38, segs = [[0.42, 'viz-stroke1'], [0.33, 'viz-stroke2'], [0.25, 'viz-stroke3']], off = 0;
+      segs.forEach(function (sg) {
+        svg.appendChild(s('circle', { cx: 84, cy: 100, r: 38, 'stroke-width': 18, class: sg[1], 'stroke-dasharray': (sg[0] * C - 2) + ' ' + C, 'stroke-dashoffset': -off, transform: 'rotate(-90 84 100)' }));
+        off += sg[0] * C;
+      });
+      svg.appendChild(s('rect', { x: 166, y: 14, width: 140, height: 172, rx: 9, class: 'viz-card' }));
+      [88, 66, 104, 52, 76].forEach(function (w, n) {
+        svg.appendChild(s('rect', { x: 180, y: 32 + n * 29, width: 40, height: 6, rx: 3, class: 'viz-c2' }));
+        svg.appendChild(s('rect', { x: 180, y: 43 + n * 29, width: w, height: 10, rx: 5, class: n === 2 ? 'viz-c3' : 'viz-c1' }));
+      });
     } else {
-      statusEl.textContent = "Preview unavailable right now — use Download instead.";
-      statusEl.classList.add("is-error");
+      svg.appendChild(s('rect', { x: 28, y: 62, width: 86, height: 92, rx: 16, class: 'viz-card' }));
+      svg.appendChild(s('circle', { cx: 71, cy: 96, r: 17, class: 'viz-c2' }));
+      svg.appendChild(s('circle', { cx: 71, cy: 96, r: 7, class: 'viz-c1' }));
+      svg.appendChild(s('rect', { x: 49, y: 128, width: 44, height: 8, rx: 4, class: 'viz-c3' }));
+      svg.appendChild(s('path', { d: 'M126 96 q14 -14 28 0 M120 88 q20 -22 40 0', class: 'viz-line', 'stroke-width': 2.5 }));
+      svg.appendChild(s('path', { d: 'M156 118 H206', class: 'viz-dash', 'stroke-width': 2 }));
+      svg.appendChild(s('rect', { x: 210, y: 28, width: 82, height: 144, rx: 14, class: 'viz-card' }));
+      svg.appendChild(s('rect', { x: 220, y: 44, width: 62, height: 28, rx: 7, class: 'viz-c3' }));
+      svg.appendChild(s('rect', { x: 220, y: 80, width: 62, height: 14, rx: 6, class: 'viz-c2' }));
+      svg.appendChild(s('rect', { x: 220, y: 102, width: 44, height: 14, rx: 6, class: 'viz-c2' }));
+      svg.appendChild(s('circle', { cx: 251, cy: 148, r: 8, class: 'viz-c1' }));
     }
+    return svg;
   }
 
-  function openResumeModal(e) {
-    if (e) e.preventDefault();
-    const modal = document.getElementById("resumeModal");
-    const frame = document.getElementById("resumeModalFrame");
-    const img = document.getElementById("resumeModalImage");
-    const statusEl = document.getElementById("resumeModalStatus");
-    if (!modal || !frame || !statusEl || !img) return;
-
-    resetResumeZoom();
-
-    if (!resumeFrameRequested) {
-      resumeFrameRequested = true;
-      statusEl.textContent = "Loading resume…";
-      statusEl.classList.remove("is-error");
-      statusEl.hidden = false;
-      frame.hidden = true;
-      img.hidden = true;
-
-      let settled = false;
-      const timeoutMs = PORTFOLIO_CONFIG.resume.pdfLoadTimeout || 3000;
-      const timer = setTimeout(() => {
-        if (settled) return;
-        settled = true;
-        showResumeFallbackImage(statusEl, frame, img);
-      }, timeoutMs);
-
-      frame.onload = () => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timer);
-        statusEl.hidden = true;
-        frame.hidden = false;
+  var photoRetry = [];
+  /** Visual block: always shows the built-in SVG; overlays an optional photo only if it loads. */
+  function visual(project, showTag) {
+    var wrap = h('div', { class: 'viz-wrap' }, vizSvg(project.kind));
+    if (showTag) wrap.appendChild(h('span', { class: 'viz-tag', text: 'Illustrative concept' }));
+    var url = project.photo ? safeUrl(project.photo) : null;
+    if (url && /^https:/.test(url)) {
+      var load = function () {
+        var img = h('img', { alt: '', width: 1600, height: 1000, loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
+        img.onload = function () { img.alt = 'Stock photo representing ' + project.category.toLowerCase() + ' (illustrative, not a screenshot)'; wrap.insertBefore(img, wrap.firstChild.nextSibling); wrap.firstChild.setAttribute('aria-hidden', 'true'); };
+        img.onerror = function () { img.remove(); };
+        img.src = url;
       };
-      frame.onerror = () => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timer);
-        showResumeFallbackImage(statusEl, frame, img);
-      };
-
-      if (isHttpsUrl(PORTFOLIO_CONFIG.resume.pdf)) {
-        frame.setAttribute("src", PORTFOLIO_CONFIG.resume.pdf);
-      } else {
-        clearTimeout(timer);
-        showResumeFallbackImage(statusEl, frame, img);
-      }
+      load();
+      photoRetry.push(load);
     }
-
-    modal.hidden = false;
-    requestAnimationFrame(() => modal.classList.add("is-open"));
-    document.body.style.overflow = "hidden";
+    return wrap;
   }
 
-  function closeResumeModal() {
-    const modal = document.getElementById("resumeModal");
-    if (!modal) return;
-    modal.classList.remove("is-open");
-    document.body.style.overflow = "";
-    setTimeout(() => { modal.hidden = true; }, 350);
+  /* ===================== 4. RENDERING ===================== */
+
+  function renderHero() {
+    var social = $('#heroSocial');
+    RESUME.links.forEach(function (l) { social.appendChild(h('li', null, extLink(l.label, l.url))); });
+    var prev = $('#heroPreview');
+    var chips = [];
+    RESUME.skills.forEach(function (g) { if (g.section === 'skills') g.items.slice(0, 2).forEach(function (i) { chips.push(i.replace(/ \(.*\)/, '')); }); });
+    prev.appendChild(visual(RESUME.projects[0], true));
+    prev.appendChild(h('p', { class: 'preview-caption', text: 'Concept preview — the kind of operational dashboard I build.' }));
+    prev.appendChild(h('div', { class: 'preview-chips' }, chips.map(function (c) { return h('span', { class: 'chip', text: c }); })));
   }
 
-  async function downloadResume() {
-    const pdf = PORTFOLIO_CONFIG.resume.pdf;
-    if (!isHttpsUrl(pdf)) return false;
-    try {
-      const res = await fetch(pdf);
-      if (!res.ok) throw new Error("fetch failed");
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = PORTFOLIO_CONFIG.resume.fileName || "resume.pdf";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 4000);
-      return true;
-    } catch (err) {
-      window.open(pdf, "_blank", "noopener,noreferrer");
-      return true;
-    }
+  function renderAbout() {
+    var body = $('#aboutBody');
+    var cur = RESUME.experience[0], edu = RESUME.education[0];
+    body.appendChild(h('div', { class: 'about-summary' }, RESUME.summary.map(function (t) { return h('p', null, richText(t)); }),
+      h('div', { class: 'chip-list', 'aria-label': 'Soft skills' }, RESUME.softSkills.map(function (t) { return h('span', { class: 'chip', text: t }); }))));
+    body.appendChild(h('div', { class: 'fact-card' }, h('dl', { class: 'fact-list' },
+      fact('Based in', RESUME.location),
+      fact('Currently', cur.title + ', ' + cur.org + ', ' + cur.place),
+      fact('Education', edu.short + ' (' + edu.period + '), ' + edu.grade.replace('CGPA: ', 'CGPA ')),
+      fact('Focus', 'Operational data analysis, dashboards, workflow automation, web pages'))));
+  }
+  function fact(k, v) { return h('div', null, h('dt', { text: k }), h('dd', { text: v })); }
+
+  function chipList(items) { return h('div', { class: 'chip-list' }, items.map(function (i) { return h('span', { class: 'chip', text: i }); })); }
+
+  function renderSkills() {
+    var body = $('#skillsBody');
+    RESUME.skills.filter(function (g) { return g.section === 'skills'; }).forEach(function (g) {
+      body.appendChild(h('div', { class: 'card' }, h('h3', { text: g.group }), chipList(g.items)));
+    });
+    body.appendChild(h('div', { class: 'card' }, h('h3', { text: 'Soft skills' }), chipList(RESUME.softSkills)));
   }
 
-  function initResumeModal() {
-    const modal = document.getElementById("resumeModal");
-    const backdrop = document.getElementById("resumeModalBackdrop");
-    const closeBtn = document.getElementById("resumeModalClose");
-    const downloadBtn = document.getElementById("resumeModalDownload");
-    const zoomInBtn = document.getElementById("resumeZoomIn");
-    const zoomOutBtn = document.getElementById("resumeZoomOut");
-    const zoomResetBtn = document.getElementById("resumeZoomReset");
-    const viewport = document.getElementById("resumeViewport");
-    const triggers = [
-      document.getElementById("resumeNavTrigger"),
-      document.getElementById("resumeNavTriggerMobile"),
-      document.getElementById("resumeHeroTrigger"),
-    ].filter(Boolean);
-    if (!modal) return;
+  function renderExperience() {
+    var body = $('#experienceBody');
+    RESUME.experience.forEach(function (e) {
+      body.appendChild(h('li', { class: 'timeline-item' },
+        h('div', { class: 'item-head' }, h('h3', { text: e.title }), h('span', { class: 'period', text: e.period })),
+        h('p', { class: 'org', text: e.org + ', ' + e.place }),
+        h('ul', { class: 'bullets' }, e.bullets.map(function (b) { return h('li', { text: b }); }))));
+    });
+  }
 
-    triggers.forEach((t) => t.addEventListener("click", openResumeModal));
-    if (backdrop) backdrop.addEventListener("click", closeResumeModal);
-    if (closeBtn) closeBtn.addEventListener("click", closeResumeModal);
+  function renderEducation() {
+    var body = $('#educationBody');
+    RESUME.education.forEach(function (e) {
+      body.appendChild(h('li', { class: 'edu-card' + (e.minor ? ' is-minor' : '') },
+        h('span', { class: 'badge', text: e.short }),
+        h('h3', { text: e.degree }),
+        h('p', { class: 'org', text: e.school + ', ' + e.place }),
+        h('span', { class: 'period', text: e.period }),
+        h('p', { class: 'grade', text: e.grade })));
+    });
+  }
 
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && modal.classList.contains("is-open")) closeResumeModal();
+  function renderProjects() {
+    var body = clear($('#projectsBody'));
+    if (!RESUME.projects.length) { body.appendChild(emptyState('No projects to show yet.')); return; }
+    RESUME.projects.forEach(function (p) {
+      var btn = h('button', { type: 'button', class: 'btn btn-secondary btn-small', 'aria-haspopup': 'dialog', text: 'View details' });
+      btn.addEventListener('click', function () { openProject(p, btn); });
+      body.appendChild(h('article', { class: 'project-card', 'aria-label': p.title },
+        visual(p, true),
+        h('div', { class: 'project-body' },
+          h('div', { class: 'project-badges' }, h('span', { class: 'badge badge-real', text: 'Real project' }), h('span', { class: 'badge', text: p.category })),
+          h('h3', { text: p.title }), h('p', { text: p.description }), btn)));
+    });
+  }
+
+  function renderTools() {
+    var body = $('#toolsBody');
+    RESUME.skills.filter(function (g) { return g.section !== 'skills'; }).forEach(function (g) {
+      body.appendChild(h('div', { class: 'tool-group' }, h('h3', { text: g.group === 'Tools' ? 'Tools' : 'Technologies · ' + g.group }),
+        h('div', { class: 'tool-grid' }, g.items.map(function (i) { return h('div', { class: 'tool' }, h('span', { class: 'tool-mark', 'aria-hidden': 'true', text: initials(i) }), h('span', { text: i })); }))));
+    });
+  }
+
+  /** Renders the full resume into any container (on-page view and print view share this). */
+  function renderResumeDoc(root) {
+    clear(root);
+    var contact = h('p', { class: 'r-contact' }, RESUME.phone + '  |  ',
+      h('a', { href: 'mailto:' + RESUME.email, text: RESUME.email }), '  |  ' + RESUME.location);
+    var links = h('p', { class: 'r-contact' });
+    RESUME.links.forEach(function (l, i) { if (i) links.appendChild(document.createTextNode('  |  ')); links.appendChild(document.createTextNode(l.label + ': ')); links.appendChild(extLink(l.display, l.url)); });
+    root.appendChild(h('h3', { class: 'r-name', text: RESUME.name }));
+    root.appendChild(contact); root.appendChild(links);
+
+    root.appendChild(h('h4', { text: 'Professional Summary' }));
+    root.appendChild(h('ul', { class: 'r-list' }, RESUME.summary.map(function (t) { return h('li', null, richText(t)); })));
+
+    root.appendChild(h('h4', { text: 'Experience' }));
+    RESUME.experience.forEach(function (e) {
+      root.appendChild(h('div', { class: 'r-item' },
+        h('div', { class: 'r-row' }, h('span', { text: e.title }), h('span', { text: e.period })),
+        h('p', { class: 'r-sub', text: e.org + ', ' + e.place }),
+        h('ul', { class: 'r-list' }, e.bullets.map(function (b) { return h('li', { text: b }); }))));
     });
 
-    const step = PORTFOLIO_CONFIG.resume.zoomStep;
-    if (zoomInBtn) zoomInBtn.addEventListener("click", () => setResumeZoom(resumeZoom + step));
-    if (zoomOutBtn) zoomOutBtn.addEventListener("click", () => setResumeZoom(resumeZoom - step));
-    if (zoomResetBtn) zoomResetBtn.addEventListener("click", resetResumeZoom);
+    root.appendChild(h('h4', { text: 'Education' }));
+    RESUME.education.forEach(function (e) {
+      root.appendChild(h('div', { class: 'r-item' + (e.minor ? ' r-minor' : '') },
+        h('div', { class: 'r-row' }, h('span', { text: e.degree + ' - ' + e.short }), h('span', { text: e.period })),
+        h('p', { text: e.school + ', ' + e.place }), h('p', { text: e.grade })));
+    });
 
-    // Mouse-wheel zoom on PC, only while hovering the resume viewport, and
-    // only while the modal is open — never hijacks normal page scrolling.
-    if (viewport) {
-      viewport.addEventListener(
-        "wheel",
-        (e) => {
-          if (!modal.classList.contains("is-open")) return;
-          e.preventDefault();
-          const direction = e.deltaY < 0 ? 1 : -1;
-          setResumeZoom(resumeZoom + direction * step);
-        },
-        { passive: false }
-      );
+    root.appendChild(h('h4', { text: 'Technical Skills' }));
+    RESUME.skills.forEach(function (g) { root.appendChild(h('p', { class: 'r-skill' }, h('strong', { text: g.group + ': ' }), g.items.join(' • '))); });
+
+    root.appendChild(h('h4', { text: 'Projects' }));
+    RESUME.projects.forEach(function (p) {
+      root.appendChild(h('div', { class: 'r-item' }, h('p', { class: 'r-sub', text: p.title }), h('ul', { class: 'r-list' }, h('li', { text: p.description }))));
+    });
+
+    root.appendChild(h('h4', { text: 'Soft Skills' }));
+    root.appendChild(h('ul', { class: 'r-list r-cols' }, RESUME.softSkills.map(function (t) { return h('li', { text: t }); })));
+  }
+
+  function renderContact() {
+    var info = $('#contactInfo');
+    info.appendChild(h('div', { class: 'contact-item' }, h('span', { text: 'Email' }), h('a', { href: 'mailto:' + RESUME.email, text: RESUME.email })));
+    info.appendChild(h('div', { class: 'contact-item' }, h('span', { text: 'Phone' }), h('a', { href: 'tel:' + RESUME.phoneHref, text: RESUME.phone })));
+    info.appendChild(h('div', { class: 'contact-item' }, h('span', { text: 'Location' }), h('strong', { text: RESUME.location })));
+    RESUME.links.forEach(function (l) { info.appendChild(h('div', { class: 'contact-item' }, h('span', { text: l.label }), extLink(l.display, l.url))); });
+  }
+
+  function renderFooter() {
+    $('#footerYear').textContent = String(new Date().getFullYear());
+    var ul = $('#footerLinks');
+    ul.appendChild(h('li', null, h('a', { href: 'mailto:' + RESUME.email, text: 'Email' })));
+    RESUME.links.forEach(function (l) { ul.appendChild(h('li', null, extLink(l.label, l.url))); });
+  }
+
+  /* ===================== 5. THEME ===================== */
+
+  function currentTheme() { return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; }
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    var btn = $('#themeToggle');
+    if (btn) btn.setAttribute('aria-label', t === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+    var color = t === 'dark' ? '#071226' : '#f5f8fc';
+    $$('meta[name="theme-color"]').forEach(function (m) { m.setAttribute('content', color); m.removeAttribute('media'); });
+  }
+  function initTheme() {
+    applyTheme(currentTheme());
+    var btn = $('#themeToggle');
+    btn.addEventListener('click', function () {
+      var root = document.documentElement, next = currentTheme() === 'dark' ? 'light' : 'dark';
+      root.classList.add('theme-transition');
+      applyTheme(next);
+      store.set(THEME_KEY, next);
+      setTimeout(function () { root.classList.remove('theme-transition'); }, 400);
+    });
+    if (window.matchMedia) {
+      var mq = matchMedia('(prefers-color-scheme: dark)');
+      var onChange = function (e) { var saved = store.get(THEME_KEY); if (saved !== 'light' && saved !== 'dark') applyTheme(e.matches ? 'dark' : 'light'); };
+      if (mq.addEventListener) mq.addEventListener('change', onChange); else if (mq.addListener) mq.addListener(onChange);
     }
+  }
 
-    if (downloadBtn) {
-      downloadBtn.addEventListener("click", async () => {
-        downloadBtn.setAttribute("disabled", "true");
-        await downloadResume();
-        downloadBtn.removeAttribute("disabled");
+  /* ===================== 6. NAVIGATION ===================== */
+
+  function initNav() {
+    var nav = $('#primaryNav'), toggle = $('#menuToggle');
+    function setOpen(open, returnFocus) {
+      nav.classList.toggle('is-open', open);
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+      if (!open && returnFocus) toggle.focus();
+    }
+    toggle.addEventListener('click', function () { setOpen(!nav.classList.contains('is-open')); });
+    $$('a', nav).forEach(function (a) { a.addEventListener('click', function () { setOpen(false); }); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && nav.classList.contains('is-open')) setOpen(false, true); });
+    document.addEventListener('click', function (e) { if (nav.classList.contains('is-open') && !nav.contains(e.target) && !toggle.contains(e.target)) setOpen(false); });
+    window.addEventListener('resize', function () { if (window.innerWidth > 960) setOpen(false); });
+
+    // Active link state
+    var links = {}; $$('a[data-nav]', nav).forEach(function (a) { links[a.getAttribute('data-nav')] = a; });
+    if (!('IntersectionObserver' in window)) return;
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        Object.keys(links).forEach(function (k) { links[k].removeAttribute('aria-current'); });
+        var a = links[en.target.id]; if (a) a.setAttribute('aria-current', 'true');
+      });
+    }, { rootMargin: '-40% 0px -55% 0px' });
+    Object.keys(links).forEach(function (id) { var sec = document.getElementById(id); if (sec) io.observe(sec); });
+  }
+
+  /* ===================== 7. ROUTING / CUSTOM 404 ===================== */
+
+  var baseTitle = document.title;
+  function isUnknownRoute() {
+    var hash = location.hash.replace(/^#/, '');
+    if (hash) { try { hash = decodeURIComponent(hash); } catch (e) { return true; } }
+    if (hash && ROUTES.indexOf(hash) === -1) return true;
+    if (location.protocol !== 'file:') {
+      // If a host rewrites unknown paths to index.html, show the 404 view for them.
+      var last = location.pathname.split('/').pop();
+      if (last && !/\.html?$/i.test(last)) return true;
+    }
+    return false;
+  }
+  function applyRoute() {
+    var bad = isUnknownRoute();
+    $('#notFound').hidden = !bad;
+    $$('main > section:not(#notFound)').forEach(function (sec) { sec.hidden = bad; });
+    document.title = bad ? '404 — Page not found | Harish R' : baseTitle;
+    if (bad) { var t = $('#nfTitle'); t.setAttribute('tabindex', '-1'); t.focus({ preventScroll: true }); window.scrollTo(0, 0); }
+    else {
+      var id = location.hash.replace(/^#/, '');
+      if (id && document.getElementById(id)) requestAnimationFrame(function () { document.getElementById(id).scrollIntoView(); });
+    }
+  }
+  function initRouting() {
+    window.addEventListener('hashchange', applyRoute);
+    $('#nfBack').addEventListener('click', function () {
+      if (history.length > 1) history.back(); else { location.hash = '#home'; }
+    });
+    applyRoute();
+  }
+
+  /* ===================== 8. NETWORK STATE ===================== */
+
+  function initNetwork() {
+    var banner = $('#netBanner'), text = $('#netBannerText'), retry = $('#netRetry'), timer = null;
+    function show(msg, withRetry) {
+      clearTimeout(timer); banner.hidden = false; text.textContent = msg; retry.hidden = !withRetry;
+    }
+    function offline() { show('You appear to be offline. This page still works, but the contact form, PDF library and optional images need a connection.', true); }
+    window.addEventListener('offline', offline);
+    window.addEventListener('online', function () {
+      show('You’re back online.', false);
+      photoRetry.forEach(function (fn) { fn(); });
+      timer = setTimeout(function () { banner.hidden = true; }, 3500);
+    });
+    retry.addEventListener('click', function () {
+      if (navigator.onLine) { banner.hidden = true; photoRetry.forEach(function (fn) { fn(); }); }
+      else show('Still offline. Check your connection and try again.', true);
+    });
+    if (!navigator.onLine) offline();
+  }
+
+  /* ===================== 9. PDF EXPORT ===================== */
+
+  var jsPdfPromise = null;
+  function loadJsPdf() {
+    if (window.jspdf && window.jspdf.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
+    if (jsPdfPromise) return jsPdfPromise;
+    jsPdfPromise = new Promise(function (resolve, reject) {
+      var sc = document.createElement('script'), done = false;
+      var fail = function (why) { if (done) return; done = true; clearTimeout(t); sc.remove(); reject(new Error(why)); };
+      var t = setTimeout(function () { fail('timeout'); }, SITE.jsPdf.timeoutMs);
+      sc.src = SITE.jsPdf.url; sc.integrity = SITE.jsPdf.integrity; sc.crossOrigin = 'anonymous'; sc.referrerPolicy = 'no-referrer'; sc.async = true;
+      sc.onload = function () {
+        if (done) return;
+        if (window.jspdf && window.jspdf.jsPDF) { done = true; clearTimeout(t); resolve(window.jspdf.jsPDF); } else fail('missing-global');
+      };
+      sc.onerror = function () { fail('load-error'); };
+      document.head.appendChild(sc);
+    }).catch(function (e) { jsPdfPromise = null; throw e; });
+    return jsPdfPromise;
+  }
+
+  /** Builds a real, text-based (selectable) multi-page A4 PDF from RESUME. */
+  function buildResumePdf(JsPDF) {
+    var doc = new JsPDF({ unit: 'pt', format: 'a4', compress: true });
+    var PW = 595.28, PH = 841.89, M = 40, CW = PW - M * 2, BOTTOM = PH - 34;
+    var INK = [17, 24, 39], BLUE = [19, 56, 110], MUTED = [75, 85, 99], LINK = [11, 79, 179];
+    var y = M;
+
+    function font(style, size, color) { doc.setFont('times', style); doc.setFontSize(size); doc.setTextColor.apply(doc, color || INK); }
+    function lh(size) { return size * 1.3; }
+    function ensure(hgt) { if (y + hgt > BOTTOM) { doc.addPage(); y = M; } }
+    function heading(t) {
+      ensure(70); y += 5; font('bold', 13, BLUE);
+      doc.text(t, M, y + 11); y += 17;
+      doc.setDrawColor.apply(doc, BLUE); doc.setLineWidth(0.8); doc.line(M, y, PW - M, y); y += 6;
+    }
+    function row(left, right, size) {
+      font('bold', size, INK);
+      var rw = right ? doc.getTextWidth(right) + 14 : 0;
+      var lines = doc.splitTextToSize(left, CW - rw);
+      ensure(lines.length * lh(size) + 20);
+      lines.forEach(function (ln, i) {
+        doc.text(ln, M, y + size * 0.85);
+        if (i === 0 && right) doc.text(right, PW - M, y + size * 0.85, { align: 'right' });
+        y += lh(size);
       });
     }
-  }
-
-  /* =====================================================
-     KEYBOARD SHORTCUTS (fully data-driven from PORTFOLIO_CONFIG.keyboardShortcuts)
-  ===================================================== */
-  function matchesCombo(e, combo) {
-    const key = (e.key || "").toLowerCase();
-    return (
-      !!e.ctrlKey === !!combo.ctrl &&
-      !!e.altKey === !!combo.alt &&
-      !!e.shiftKey === !!combo.shift &&
-      !!e.metaKey === !!combo.meta &&
-      key === combo.key.toLowerCase()
-    );
-  }
-
-  function runShortcutAction(shortcut) {
-    switch (shortcut.action) {
-      case "openResumeModal":
-        openResumeModal();
-        break;
-      case "downloadResume":
-        downloadResume();
-        break;
-      case "openUrl": {
-        const url = resolveConfigPath(shortcut.url);
-        if (isUsableUrl(url)) window.open(url, "_blank", "noopener,noreferrer");
-        break;
-      }
-      default:
-        break;
+    function para(text, style, size, color, indent) {
+      font(style, size, color);
+      var lines = doc.splitTextToSize(text, CW - (indent || 0));
+      ensure(lines.length * lh(size));
+      lines.forEach(function (ln) { doc.text(ln, M + (indent || 0), y + size * 0.85); y += lh(size); });
     }
+    function bullet(text, size) {
+      font('normal', size, INK);
+      var lines = doc.splitTextToSize(text, CW - 14);
+      ensure(lines.length * lh(size) + 2);
+      doc.text('\u2022', M + 3, y + size * 0.85);
+      lines.forEach(function (ln) { doc.text(ln, M + 14, y + size * 0.85); y += lh(size); });
+      y += 2;
+    }
+    function labelled(label, body, size) {
+      font('bold', size, INK);
+      var lw = doc.getTextWidth(label + ' ');
+      font('normal', size, INK);
+      var lines = doc.splitTextToSize(body, CW - lw);
+      ensure(lines.length * lh(size) + 2);
+      font('bold', size, INK); doc.text(label, M, y + size * 0.85);
+      font('normal', size, INK);
+      lines.forEach(function (ln) { doc.text(ln, M + lw, y + size * 0.85); y += lh(size); });
+      y += 1;
+    }
+
+    // Header
+    font('bold', 24, BLUE); doc.text(RESUME.name.toUpperCase(), M, y + 20); y += 28;
+    para(RESUME.phone + '   |   ' + RESUME.email + '   |   ' + RESUME.location, 'normal', 10, MUTED);
+    // Contact links (clickable, visible URLs)
+    font('normal', 10, LINK);
+    var x = M;
+    RESUME.links.forEach(function (l, i) {
+      var label = l.label + ': ' + l.display;
+      if (i) { font('normal', 10, MUTED); doc.text('   |   ', x, y + 9); x += doc.getTextWidth('   |   '); }
+      font('normal', 10, LINK);
+      doc.textWithLink(label, x, y + 9, { url: l.url });
+      x += doc.getTextWidth(label);
+    });
+    y += lh(10);
+
+    heading('Professional Summary');
+    RESUME.summary.forEach(function (t) { bullet(plain(t), 10); });
+
+    heading('Experience');
+    RESUME.experience.forEach(function (e) {
+      row(e.title, e.period, 11);
+      para(e.org + ', ' + e.place, 'bold', 10, INK);
+      e.bullets.forEach(function (b) { bullet(b, 10); });
+      y += 3;
+    });
+
+    heading('Education');
+    RESUME.education.forEach(function (e) {
+      row(e.degree + ' - ' + e.short, e.period, 11);
+      para(e.school + ', ' + e.place, 'normal', 10, e.minor ? MUTED : INK);
+      para(e.grade, 'normal', 10, e.minor ? MUTED : INK);
+      y += 4;
+    });
+
+    heading('Technical Skills');
+    RESUME.skills.forEach(function (g) { labelled(g.group + ':', g.items.join('  \u2022  '), 10); });
+
+    heading('Projects');
+    RESUME.projects.forEach(function (p) {
+      row(p.title, '', 10);
+      bullet(p.description, 10);
+      y += 2;
+    });
+
+    heading('Soft Skills');
+    var colW = CW / 2;
+    for (var i = 0; i < RESUME.softSkills.length; i += 2) {
+      ensure(lh(10) + 2);
+      font('normal', 10, INK);
+      doc.text('\u2022 ' + RESUME.softSkills[i], M + 3, y + 10 * 0.85);
+      if (RESUME.softSkills[i + 1]) doc.text('\u2022 ' + RESUME.softSkills[i + 1], M + colW, y + 10 * 0.85);
+      y += lh(10) + 2;
+    }
+
+    var pages = doc.getNumberOfPages();
+    if (pages > 1) {
+      for (var p = 1; p <= pages; p++) {
+        doc.setPage(p); font('normal', 9, MUTED);
+        doc.text('Page ' + p + ' of ' + pages, PW / 2, PH - 22, { align: 'center' });
+      }
+    }
+    doc.setProperties({ title: RESUME.name + ' — Resume', author: RESUME.name, subject: 'Resume' });
+    return doc;
   }
 
-  function initKeyboardShortcuts() {
-    document.addEventListener("keydown", (e) => {
-      if (isTypingTarget(e.target)) return; // never hijack normal typing
+  var printReady = false, printing = false;
+  function printResume() {
+    if (!printReady) { renderResumeDoc($('#printRoot').appendChild(h('article', { class: 'resume-doc' }))); printReady = true; }
+    if (printing) return;
+    printing = true;
+    var done = function () { printing = false; };
+    window.addEventListener('afterprint', done, { once: true });
+    setTimeout(function () { window.print(); setTimeout(done, 2000); }, 60);
+  }
 
-      for (const shortcut of PORTFOLIO_CONFIG.keyboardShortcuts) {
-        if (!shortcut.enabled) continue;
-        if (matchesCombo(e, shortcut.combo)) {
-          e.preventDefault();
-          runShortcutAction(shortcut);
-          return;
-        }
-      }
+  function statusFor(btn) {
+    var sec = btn.closest('section');
+    return (sec && $('.status-line', sec)) || $('#resumeStatus');
+  }
+  function setStatus(el, msg, kind) { el.textContent = msg; el.classList.toggle('is-error', kind === 'error'); el.classList.toggle('is-ok', kind === 'ok'); }
+
+  var pdfBusy = false;
+  function downloadResume(btn) {
+    if (pdfBusy) return;
+    pdfBusy = true;
+    var status = statusFor(btn), original = btn.textContent;
+    btn.setAttribute('aria-busy', 'true');
+    var spin = h('span', { class: 'spinner', 'aria-hidden': 'true' });
+    btn.insertBefore(spin, btn.firstChild);
+    setStatus(status, 'Preparing your PDF…');
+    loadJsPdf().then(function (JsPDF) {
+      var doc = buildResumePdf(JsPDF);
+      doc.save(SITE.pdfFileName);
+      setStatus(status, 'PDF created — your browser should now be saving ' + SITE.pdfFileName + '.', 'ok');
+    }).catch(function (err) {
+      var offline = !navigator.onLine;
+      setStatus(status, (offline ? 'You’re offline, so the PDF library couldn’t load. ' : 'The PDF couldn’t be generated automatically. ') +
+        'Opening the print view instead — choose “Save as PDF” in the print dialog.', 'error');
+      if (window.console) console.warn('[resume] PDF generation failed:', err && err.message);
+      printResume();
+    }).then(function () {
+      pdfBusy = false; btn.removeAttribute('aria-busy'); spin.remove();
     });
   }
 
-  /* =====================================================
-     CONTACT FORM (custom validation messages + Google Sheets backend)
-  ===================================================== */
+  function initResumeActions() {
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest && e.target.closest('[data-action]');
+      if (!btn) return;
+      var a = btn.getAttribute('data-action');
+      if (a === 'download-resume') downloadResume(btn);
+      else if (a === 'print-resume') { setStatus(statusFor(btn), 'Opening the print view — choose “Save as PDF” in the print dialog.'); printResume(); }
+    });
+    // Warm the library cache when the user shows intent (not at page load).
+    $$('[data-action="download-resume"]').forEach(function (b) {
+      var warm = function () { loadJsPdf().catch(function () {}); };
+      b.addEventListener('pointerenter', warm, { once: true }); b.addEventListener('focus', warm, { once: true });
+    });
+  }
+
+  /* ===================== 10. CONTACT FORM ===================== */
+
   function initContactForm() {
-    const form = document.getElementById("contactForm");
-    if (!form) return;
-
-    const status = document.getElementById("formStatus");
-    const submitBtn = document.getElementById("formSubmit");
-    const fields = {
-      name: document.getElementById("fName"),
-      email: document.getElementById("fEmail"),
-      message: document.getElementById("fMessage"),
+    var form = $('#contactForm'), status = $('#contactStatus'), submit = $('#contactSubmit');
+    var fields = {
+      name: { el: $('#cName'), err: $('#cNameErr'), check: function (v) { return v.trim().length >= 2 ? '' : 'Please enter your name (at least 2 characters).'; } },
+      email: { el: $('#cEmail'), err: $('#cEmailErr'), check: function (v) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()) ? '' : 'Please enter a valid email address.'; } },
+      message: { el: $('#cMessage'), err: $('#cMessageErr'), check: function (v) { return v.trim().length >= 10 ? '' : 'Please write a message of at least 10 characters.'; } }
     };
-    const msgs = {
-      name: document.getElementById("fNameMsg"),
-      email: document.getElementById("fEmailMsg"),
-      message: document.getElementById("fMessageMsg"),
-    };
-    // Custom per-field messages, as requested.
-    const REQUIRED_MESSAGES = {
-      name: "Please enter your name",
-      email: "Enter a valid mail address",
-      message: "Leave me a message here.",
-    };
-    let isSubmitting = false;
+    var sending = false, lastSent = { key: '', at: 0 };
 
-    function validateField(key) {
-      const input = fields[key];
-      const wrap = input.closest(".field");
-      let valid = true;
+    function validate(key) {
+      var f = fields[key], msg = f.check(f.el.value);
+      f.err.hidden = !msg; f.err.textContent = msg;
+      if (msg) f.el.setAttribute('aria-invalid', 'true'); else f.el.removeAttribute('aria-invalid');
+      return !msg;
+    }
+    Object.keys(fields).forEach(function (k) {
+      fields[k].el.addEventListener('blur', function () { if (fields[k].el.value) validate(k); });
+      fields[k].el.addEventListener('input', function () { if (fields[k].el.getAttribute('aria-invalid')) validate(k); });
+    });
 
-      if (!input.value.trim()) {
-        valid = false;
-      } else if (key === "email") {
-        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!re.test(input.value.trim())) valid = false;
+    function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+    /** POST with a timeout and a bounded number of retries (network errors / 5xx only). */
+    function postWithRetry(payload) {
+      var attempt = 0;
+      function once() {
+        var ctrl = 'AbortController' in window ? new AbortController() : null;
+        var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, SITE.requestTimeoutMs);
+        return fetch(SITE.contactEndpoint, {
+          method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload),
+          signal: ctrl ? ctrl.signal : undefined, credentials: 'omit', referrerPolicy: 'no-referrer'
+        }).then(function (res) {
+          clearTimeout(timer);
+          if (res.status >= 500 && attempt < SITE.maxRetries) { attempt++; return wait(700 * attempt).then(once); }
+          if (!res.ok) throw new Error('http-' + res.status);
+          return res.json();
+        }, function (err) {
+          clearTimeout(timer);
+          if (attempt < SITE.maxRetries) { attempt++; return wait(700 * attempt).then(once); }
+          throw err;
+        });
       }
-
-      wrap.classList.toggle("is-valid", valid);
-      msgs[key].textContent = valid ? "" : REQUIRED_MESSAGES[key];
-      return valid;
-    }
-    Object.keys(fields).forEach((key) => fields[key].addEventListener("blur", () => validateField(key)));
-
-    async function submitToGoogleSheets(payload) {
-      const endpoint = PORTFOLIO_CONFIG.backend.scriptUrl;
-      if (!endpoint || !isHttpsUrl(endpoint)) throw new Error("endpoint-not-configured");
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" }, // avoids CORS preflight
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error("network-error");
-      const data = await res.json();
-      if (data.status !== "success") throw new Error(data.message || "server-error");
-      return data;
+      return once();
     }
 
-    form.addEventListener("submit", async (e) => {
+    function failMessage(offline) {
+      status.classList.remove('is-ok'); status.classList.add('is-error');
+      clear(status);
+      status.appendChild(document.createTextNode((offline ? 'You’re offline. ' : 'Sorry, your message couldn’t be sent right now. ') + 'Please try again, or email me directly at '));
+      status.appendChild(h('a', { href: 'mailto:' + RESUME.email, text: RESUME.email }));
+      status.appendChild(document.createTextNode('.'));
+    }
+
+    form.addEventListener('submit', function (e) {
       e.preventDefault();
-      if (isSubmitting) return;
-
-      const allValid = Object.keys(fields).map(validateField).every(Boolean);
-      if (!allValid) {
-        status.textContent = "Please fix the highlighted fields.";
-        status.className = "form-status is-error";
+      if (sending) return;
+      var ok = Object.keys(fields).map(validate).every(Boolean);
+      if (!ok) {
+        setStatus(status, 'Please fix the highlighted fields.', 'error');
+        var first = Object.keys(fields).map(function (k) { return fields[k].el; }).filter(function (el) { return el.getAttribute('aria-invalid'); })[0];
+        if (first) first.focus();
         return;
       }
+      if (form.elements.website && form.elements.website.value) { setStatus(status, 'Thanks!', 'ok'); form.reset(); return; } // honeypot tripped
+      var payload = { name: fields.name.el.value.trim(), email: fields.email.el.value.trim(), message: fields.message.el.value.trim() };
+      var key = JSON.stringify(payload);
+      if (key === lastSent.key && Date.now() - lastSent.at < 60000) { setStatus(status, 'That exact message was just sent. Thank you!', 'ok'); return; }
+      if (!SITE.contactEndpoint) { failMessage(false); return; }
+      if (!navigator.onLine) { failMessage(true); return; }
 
-      isSubmitting = true;
-      submitBtn.classList.add("is-loading");
-      submitBtn.setAttribute("disabled", "true");
-      status.textContent = "Sending…";
-      status.className = "form-status";
-
-      const payload = {
-        name: fields.name.value.trim(),
-        email: fields.email.value.trim(),
-        message: fields.message.value.trim(),
-      };
-
-      try {
-        await submitToGoogleSheets(payload);
-        status.textContent = "We'll get in touch soon !";
-        status.className = "form-status is-success";
+      sending = true; submit.setAttribute('aria-busy', 'true'); submit.disabled = true;
+      var spin = h('span', { class: 'spinner', 'aria-hidden': 'true' }); submit.insertBefore(spin, submit.firstChild);
+      setStatus(status, 'Sending…');
+      postWithRetry(payload).then(function (data) {
+        if (!data || data.status !== 'success') throw new Error('rejected');
+        lastSent = { key: key, at: Date.now() };
+        setStatus(status, 'Thanks, ' + payload.name + '! Your message was sent.', 'ok');
         form.reset();
-        Object.values(fields).forEach((f) => f.closest(".field").classList.remove("is-valid"));
-      } catch (err) {
-        if (err && err.message === "endpoint-not-configured") {
-          window.location.href = mailtoUrl(
-            PORTFOLIO_CONFIG.identity.email,
-            `Portfolio message from ${payload.name}`,
-            `${payload.message}\n\n— ${payload.name} (${payload.email})`
-          );
-          status.textContent = "Backend not connected yet — opening your email app instead.";
-          status.className = "form-status";
-        } else if (!navigator.onLine) {
-          status.textContent = "You're offline — please check your connection and try again.";
-          status.className = "form-status is-error";
-        } else {
-          status.textContent = "Something went wrong. Please try again in a moment.";
-          status.className = "form-status is-error";
-        }
-      } finally {
-        isSubmitting = false;
-        submitBtn.classList.remove("is-loading");
-        submitBtn.removeAttribute("disabled");
-      }
+      }).catch(function () { failMessage(!navigator.onLine); })
+        .then(function () { sending = false; submit.removeAttribute('aria-busy'); submit.disabled = false; spin.remove(); });
     });
   }
 
-  /* =====================================================
-     IMAGE LOADING (drag-disable, global fallback net)
-  ===================================================== */
-  function initImageSafety() {
-    // Belt-and-suspenders on top of the draggable="false" attributes already
-    // in the markup — covers any image added later without one.
-    document.addEventListener("dragstart", (e) => {
-      if (e.target && e.target.tagName === "IMG") e.preventDefault();
-    });
+  /* ===================== 11. PROJECT DIALOG ===================== */
+
+  var dlgOpener = null;
+  function openProject(p, opener) {
+    var dlg = $('#projectDialog');
+    dlgOpener = opener;
+    clear($('#pdVisual')).appendChild(visual(p, true));
+    clear($('#pdBadges')).appendChild(h('span', { class: 'badge badge-real', text: 'Real project' }));
+    $('#pdBadges').appendChild(h('span', { class: 'badge', text: p.category }));
+    $('#pdTitle').textContent = p.title;
+    $('#pdDesc').textContent = p.description;
+    if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
+    $('#pdClose').focus();
+  }
+  function initDialog() {
+    var dlg = $('#projectDialog');
+    function close() { if (typeof dlg.close === 'function') dlg.close(); else dlg.removeAttribute('open'); if (dlgOpener) dlgOpener.focus(); }
+    $('#pdClose').addEventListener('click', close);
+    dlg.addEventListener('click', function (e) { if (e.target === dlg) close(); });
+    dlg.addEventListener('close', function () { if (dlgOpener) dlgOpener.focus(); });
   }
 
-  /* =====================================================
-     NAVIGATION — always start at Home on a normal refresh
-  ===================================================== */
-  function initScrollRestoration() {
-    if ("scrollRestoration" in history) {
-      try { history.scrollRestoration = "manual"; } catch (e) {}
-    }
-    window.addEventListener("load", () => {
-      window.scrollTo(0, 0);
-      // Clear any stale hash from the address bar without adding a history entry.
-      if (window.location.hash) {
-        history.replaceState(null, "", window.location.pathname + window.location.search);
-      }
-    });
+  /* ===================== 12. REVEAL-ON-SCROLL ===================== */
+
+  function initReveal() {
+    var targets = $$('.section-head, .card, .timeline-item, .edu-card, .project-card, .tool-group, .fact-card, .about-summary, .contact-item, .contact-form, .resume-doc');
+    if (!('IntersectionObserver' in window)) return;
+    targets.forEach(function (el) { el.classList.add('reveal'); });
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('is-in'); io.unobserve(en.target); } });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
+    targets.forEach(function (el) { io.observe(el); });
   }
 
-  /* =====================================================
-     ERROR HANDLING (silent, non-blocking, no debug info shown to visitors)
-  ===================================================== */
-  function initErrorHandling() {
-    window.addEventListener("error", (e) => {
-      console.warn("[portfolio] runtime error caught:", e.error || e.message);
-    });
-    window.addEventListener("unhandledrejection", (e) => {
-      console.warn("[portfolio] unhandled promise rejection caught:", e.reason);
-    });
+  /* ===================== 13. INIT ===================== */
+
+  function safe(fn, name) { try { fn(); } catch (e) { if (window.console) console.warn('[init] ' + name + ' failed:', e); } }
+
+  function init() {
+    safe(renderHero, 'hero'); safe(renderAbout, 'about'); safe(renderSkills, 'skills');
+    safe(renderExperience, 'experience'); safe(renderEducation, 'education'); safe(renderProjects, 'projects');
+    safe(renderTools, 'tools'); safe(function () { renderResumeDoc($('#resumeDoc')); }, 'resume');
+    safe(renderContact, 'contact'); safe(renderFooter, 'footer');
+    safe(initTheme, 'theme'); safe(initNav, 'nav'); safe(initRouting, 'routing'); safe(initNetwork, 'network');
+    safe(initResumeActions, 'resume actions'); safe(initContactForm, 'form'); safe(initDialog, 'dialog'); safe(initReveal, 'reveal');
   }
-
-  function initOfflineState() {
-    const overlay = document.getElementById("offlineState");
-    const retry = document.getElementById("retryConnection");
-    if (!overlay) return;
-    function show() { overlay.hidden = false; overlay.classList.add("is-visible"); }
-    function hide() { overlay.hidden = true; overlay.classList.remove("is-visible"); }
-    window.addEventListener("offline", show);
-    window.addEventListener("online", hide);
-    if (!navigator.onLine) show();
-    if (retry) {
-      retry.addEventListener("click", () => {
-        if (navigator.onLine) hide();
-        else { retry.textContent = "Still offline…"; setTimeout(() => (retry.textContent = "Retry"), 1200); }
-      });
-    }
-  }
-
-  function initNotFoundState() {
-    const overlay = document.getElementById("notFoundState");
-    if (!overlay) return;
-    const validHashes = ["", "#home", "#about", "#education", "#experience", "#projects", "#contact", "#skills"];
-    function check() {
-      const hash = window.location.hash;
-      const isInvalid = !validHashes.includes(hash);
-      overlay.hidden = !isInvalid;
-      overlay.classList.toggle("is-visible", isInvalid);
-    }
-    window.addEventListener("hashchange", check);
-    check();
-  }
-
-  function initContextMenuBlock() {
-    // UX deterrent only — this does not and cannot provide real code protection.
-    document.addEventListener("contextmenu", (e) => e.preventDefault());
-  }
-
-  /* =====================================================
-     INIT — every system fails gracefully and independently
-  ===================================================== */
-  document.addEventListener("DOMContentLoaded", () => {
-    safe(initErrorHandling);
-    safe(initScrollRestoration);
-    safe(applyConfig);
-    safe(initContextMenuBlock);
-    safe(initImageSafety);
-    safe(renderSkills);
-    safe(renderDeepFocus);
-    safe(() => renderRacetrack("educationTrack", PORTFOLIO_CONFIG.education));
-    safe(() => renderRacetrack("experienceTrack", PORTFOLIO_CONFIG.experience));
-    safe(renderProjects);
-    safe(initPreloader);
-    safe(initMarqueeFontGate);
-    safe(initTheme);
-    safe(initScrollChrome);
-    safe(initNavIndicator);
-    safe(initMorphNav);
-    safe(initMobileMenu);
-    safe(initReveal);
-    safe(initContactForm);
-    safe(initResumeModal);
-    safe(initKeyboardShortcuts);
-    safe(initOfflineState);
-    safe(initNotFoundState);
-
-    window.addEventListener("resize", () => {
-      clearTimeout(window.__resizeTimer);
-      window.__resizeTimer = setTimeout(repositionAllTracks, 150);
-    });
-  });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
