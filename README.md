@@ -35,9 +35,10 @@ that changes often lives in the `PORTFOLIO_CONFIG` object at the very top of
 | Want to change...                              | Config key                        |
 |--------------------------------------------------|-------------------------------------|
 | Name, email                                       | `identity`                          |
-| Profile photo, tab icon, education/experience logos, project images | `assets`             |
-| LinkedIn, GitHub, Instagram, Naukri, HRS Server, quick-open URL, Spotify | `links`         |
-| Resume PDF, fallback preview image, load timeout, zoom limits | `resume`                |
+| Profile photo, tab icon, education/experience logos (repo `Assets/` folder), project images | `assets` |
+| LinkedIn, GitHub, Naukri, HRS Server, quick-open URL, Spotify | `links`         |
+| Instagram username (URL, tooltip and menu link all derive from it) | `INSTAGRAM_HANDLE` constant just above `PORTFOLIO_CONFIG` |
+| Resume PDF URL, resume JPG (preview fallback), PDF load timeout, zoom limits | `resume` |
 | Contact form backend URL                          | `backend.scriptUrl`                 |
 | Lazy-loading behaviour                            | `loading`                            |
 | Every keyboard shortcut (add/remove/rebind)        | `keyboardShortcuts` (array)          |
@@ -52,18 +53,24 @@ or `experience` array — the racetrack, logo, and green progress-line
 animation all render automatically from however many entries are in the
 array. Same for `projects` and `deepFocus`.
 
-### Logos / images that couldn't be used directly
-A couple of the sources provided were page links (e.g. an Instagram profile),
-not direct image files — those stay `null` in `assets.logos` with a comment
-pointing back to the original link, and the site shows a clean two-letter
-fallback until a real `https://...` image URL is added.
+### Logos and repository assets
+All local assets live in the GitHub repo's `Assets/` folder (capital A; GitHub Pages is
+case-sensitive). Paths with spaces are written URL-encoded.
 
-### Resume preview image (fallback)
-`resume.previewImage` is `null` by default. If the PDF hasn't finished
-loading within `resume.pdfLoadTimeout` (3 seconds), the modal automatically
-swaps to this image instead. Drop an exported image of your resume into
-`assets/resume/` and point `previewImage` at it (e.g.
-`"assets/resume/preview.jpg"`) to enable this fallback.
+| Item                         | Where                          | Value                          |
+|-------------------------------|---------------------------------|----------------------------------|
+| Kaashiv Infotech logo          | `assets.logos.kaashiv`           | `Assets/KAASHIV%20LOGO.jpg`      |
+| Dr. M.G.R. logo                | `assets.logos.mgr`               | `Assets/MGR%20LOGO%202.jpg`      |
+| Adhiparasakthi, Brakes India   | `assets.logos.*`                 | remote image URLs                |
+| Project images (optional)      | `assets.projectImages.*`         | `null` = gradient placeholder    |
+
+Logos fill the circle without stretching (`object-fit: cover`). If an image fails to
+load, the circle falls back to two-letter initials. Changing an image never changes layout.
+
+### Instagram
+Change `INSTAGRAM_HANDLE` (currently `hxrish._,14`) in one place. NOTE: Instagram
+usernames only allow letters, numbers, periods and underscores, so a comma will not
+resolve to a real profile. Double-check the handle.
 
 ## Keyboard shortcuts
 
@@ -86,15 +93,30 @@ page has focus.
 
 ## Resume preview behaviour
 
-1. Modal opens → tries to load the PDF (`resume.pdf`) in an iframe.
-2. If it loads within `resume.pdfLoadTimeout` (default 3s) → shown as-is.
-3. If not (slow network, blocked embed, etc.) → automatically swaps to
-   `resume.previewImage`, if one is configured.
-4. Zoom in/out/reset buttons and mouse-wheel zoom (while hovering the
-   preview) both work on whichever is currently shown — PDF or image —
-   constrained between `resume.zoomMin` and `resume.zoomMax`.
-5. Download always fetches the real PDF directly, independent of whichever
-   preview mode is currently active.
+Source files (repo `Assets/` folder, pinned to a commit in `resume.pdf` / `resume.previewImage`):
+- `Assets/HARISH R - RESUME.pdf`  (preview + download)
+- `Assets/HARISH R - RESUME.jpg`  (preview fallback only)
+
+**Opening it**
+- Desktop mouse: hover the Resume button (nav or hero) to get a floating preview card placed
+  beside the button (never covering it, never leaving the viewport). Move the pointer into the
+  card to keep it open; leaving closes it. Press Esc or the close button to dismiss it.
+- Click / tap / keyboard (and every phone or tablet): opens the same preview as a centered
+  modal with a blurred backdrop.
+
+**Fallback chain (priority order)**
+1. Real PDF. The file is fetched from GitHub (raw files are CORS-open) and re-typed as
+   `application/pdf` before being shown, because GitHub serves it as `octet-stream` with a
+   sandbox policy that blocks a direct `<iframe src>`. The same fetched copy is reused for download.
+2. Resume JPG, if the PDF fails, is blocked, takes longer than `resume.pdfLoadTimeout` (3 s),
+   or the device cannot show PDFs inline (Android, iPhone, iPad, browsers with the PDF viewer off).
+3. A short message with a link to open the PDF, if both fail.
+
+**Download** always saves the real PDF (never the JPG). If the fetch is blocked it opens the PDF
+URL directly in a new tab.
+
+Zoom in/out/reset and mouse-wheel zoom work on whichever of PDF or image is showing, limited by
+`resume.zoomMin` / `resume.zoomMax`.
 
 ## Google Sheets contact form backend
 
@@ -123,77 +145,45 @@ npm run dev
 
 ---
 
-## What changed in this update (fix/refactor pass)
+## Code protection (deterrents only)
+Right-click is disabled (except inside form fields), F12 / Ctrl+Shift+I/J/C / Ctrl+U (Cmd+Option
+equivalents on Mac) are blocked, and text selection is off outside form fields. Anything sent to a
+browser can still be inspected or downloaded, so this only discourages casual copying. Do not put
+secrets in these files. The right-click block and shortcut blocking are in `initContextMenuBlock()`.
 
-This pass preserved all existing content, sections, colors, fonts, and
-functionality, and made only the fixes requested:
+## Forced dark mode
+The page declares `color-scheme` and has real light and dark themes. A browser's own "force dark
+mode" setting (for example Brave or Chrome flags) is applied by the browser and cannot be switched
+off from CSS. In testing with Chromium's force-dark flag both themes stayed readable, and
+"Friction!" stays light on dark backgrounds.
 
-- **Architecture:** consolidated `config/config.js` + `data/data.js` +
-  `js/main.js` back into a single `script.js` with a `PORTFOLIO_CONFIG`
-  object at the top and clear section banners throughout (HTML, CSS, and JS
-  all now use matching `HOME` / `ABOUT` / `EDUCATION` / etc. banners), per
-  the minimal-file-structure requirement.
-- **Nav hover-underline bug:** the shared sliding indicator was accidentally
-  bound to `.nav-link, .nav-cta`, giving the Resume button the underline too.
-  Scoped it to `.nav-link` only — Resume keeps its own separate pill hover.
-- **Racetrack progress line:** was double-inset (the line's own `left`/`right`
-  padding stacked on top of the container's identical padding), so it didn't
-  terminate exactly at the outer logos. Now measured directly from the real
-  `.track-logo` positions via `getBoundingClientRect()`, so it's pixel-exact
-  regardless of screen size or node count — and it now animates in as a
-  scroll-triggered "draw" rather than sitting there as a static bar, on both
-  Education (BCA → MCA) and Experience (Kaashiv → Brakes India).
-- **Home loop jump/seam:** the marquee animation now starts paused and is
-  only released once `document.fonts.ready` resolves (with a safety timeout),
-  so a late web-font swap can never shift the track width mid-animation and
-  cause a visible jump. It still never pauses on hover.
-- **Resume preview:** rebuilt with a real 3-second PDF-load timeout, automatic
-  fallback to a configurable preview image, zoom in/out/reset, mouse-wheel
-  zoom, and a responsive `min()`-based container so it never overflows any
-  viewport.
-- **About section:** fixed the grid's `align-items: stretch` default (which
-  was creating an empty-looking stretched gap in the right column) to
-  `align-items: start`; heading updated to the exact wording requested.
-- **Theme / forced-dark mode:** added `<meta name="color-scheme" content="light dark">`
-  so Chromium/Android "forced dark" heuristics recognize the page already
-  supports both themes and back off instead of auto-inverting colors. Audited
-  every color declaration — the "Friction!" marker and all other text/icons
-  were already using theme-aware variables with correctly fixed contrast
-  pairings; no actual invisible-text bugs were found in the existing code.
-- **Mouse glow removed:** the custom trailing cursor-shadow element, its CSS,
-  and its mousemove listener are gone. The system cursor is untouched.
-- **Keyboard shortcuts:** rebuilt as a fully data-driven array
-  (`PORTFOLIO_CONFIG.keyboardShortcuts`) instead of hardcoded if-chains, all
-  shortcuts now skip typing targets automatically, and added
-  `Win+Ctrl+Shift+S` → `links.server` (HRS Server).
-- **Contact form:** added the three exact custom validation messages
-  requested, replacing the generic ones.
-- **Footer:** removed the trailing period after the year, reduced vertical
-  padding for a more compact footer, and added `title` attributes (alongside
-  the existing `aria-label`s) to every icon so hover tooltips show the
-  correct name for each link.
-- **Section titles / logo circles:** both sized up slightly per request,
-  still fully fluid via `clamp()`.
-- **Images:** `draggable="false"` added to the profile photo and all
-  logo/project images, plus a global `dragstart` listener as a safety net for
-  anything added later; lazy-loading (`loading="lazy" decoding="async"`)
-  added to all non-critical images while the hero photo stays eager.
-- **Refresh behavior:** `history.scrollRestoration = "manual"` plus an
-  explicit scroll-to-top and hash-clear on load, so every normal refresh
-  starts at Home.
-- **Error handling:** added silent `window.onerror` /
-  `unhandledrejection` listeners (console-only, nothing shown to visitors),
-  on top of the existing per-feature `try/catch` wrapping.
-- **Responsiveness:** capped the hero's height on very large/projector
-  displays (`clamp(520px, 86svh, 820px)` instead of an uncapped `86svh`), and
-  added a small proportional bump to `--container` above 1920px/2400px so
-  very large screens don't feel like a tiny centered island — the underlying
-  `clamp()` + fixed-max-width-container approach was already sound.
+---
 
-### Note on browser "forced dark mode"
-The `color-scheme` meta tag is the standards-based mitigation for this and
-should resolve it in current Chrome/Edge/Android WebView. A small number of
-older or third-party browsers apply their own dark-mode heuristics that
-aren't fully governed by this signal — if you spot a specific element that
-still looks wrong on a particular browser/device after this update, let me
-know which one and I'll target it directly rather than guessing further.
+## What changed in this update
+
+Applied on top of the previous working files; only the items below were touched.
+
+- **Resume preview:** rebuilt (see above). Root causes fixed: GitHub serves the PDF as
+  `octet-stream`, and the loading overlay ignored the `hidden` attribute so it covered the preview.
+  Added a hover preview, PDF -> JPG -> message chain, PDF-only download.
+- **Text:** "Executive Assistant Trainee to the Head of Operations" (also in the About text),
+  "Full Stack Python Intern", projects are now "Production Monitoring Dashboard" and
+  "Manpower Dashboard" (Power BI, short descriptions).
+- **Instagram:** now driven by one `INSTAGRAM_HANDLE` constant, set to `hxrish._,14`.
+- **Theme:** "Friction!" text follows the theme (light in dark mode); light theme declares
+  `color-scheme: only light`.
+- **Loops:** the home and toolkit loops are rebuilt so one set is cloned to always overfill the
+  screen and shifts by exactly one set. Old versions lost half a gap per cycle (a visible jump) and
+  could show blank space on wide screens or when zoomed out.
+- **Green line:** animates right to left on desktop and bottom to top on mobile; both lines are
+  measured from the real circle centers, so on mobile the line starts and ends inside the circles.
+  Re-aligned automatically on resize, zoom and font load.
+- **Scrolling:** removed the whole-page blur filter and the view-transition wrapper that caused
+  lag; native smooth scrolling is kept.
+- **Logos:** Kaashiv and MGR from `Assets/`, shown without stretching.
+- **Toolkit chips:** hover shadow added (no longer clipped).
+- **Code protection:** see above. Console messages are silenced for visitors.
+- **Small fixes:** closed mobile menu is no longer keyboard-focusable; favicon link has a safe
+  default `href`.
+
+Not changed: `Code.gs`, `vite.config.js` (unchanged from your upload).
