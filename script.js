@@ -6,6 +6,9 @@
      Change values here first.
      Do not edit the feature logic unless necessary.
   ===================================================== */
+  // Instagram username. Change it here ONLY; the profile URL, tooltip and menu link all derive from it.
+  const INSTAGRAM_HANDLE = "hxrish._,14";
+
   const PORTFOLIO_CONFIG = {
 
     identity: {
@@ -24,24 +27,24 @@
       logos: {
         adhiparasakthi:
           "https://assets.allegiance-educare.com/colleges/thumb/250_250_1392964652adhaiprasakthi%20college%20art%20and%20science.png",
-        mgr: null, // source given was an Instagram profile page, not a direct image: https://www.instagram.com/mgreri/?hl=en
-        kaashiv:
-          "https://media.licdn.com/dms/image/v2/C560BAQFC2jYbP2vMUw/company-logo_200_200/company-logo_200_200/0/1638609434663/kaashiv_infotech_logo",
+        mgr: "Assets/MGR%20LOGO%202.jpg", // repo path: Assets/MGR LOGO 2.jpg
+        kaashiv: "Assets/KAASHIV%20LOGO.jpg", // repo path: Assets/KAASHIV LOGO.jpg
         brakesIndia:
           "https://yt3.googleusercontent.com/7UhXyVBrm-Q736okMY7xZIAeAdpOP9xRsdojsoV1CaoNt0Ue4PzHa72AYwLgi9pB0HzhPB-d=s900-c-k-c0x00ffffff-no-rj",
       },
       // Project screenshots — add a direct https image URL once you have one;
       // until then the cards show a clean gradient placeholder.
       projectImages: {
-        privateServer: null, // e.g. "assets/images/private-server.jpg"
-        babyshieldIot: null, // e.g. "assets/images/babyshield-iot.jpg"
+        productionMonitoring: null, // e.g. "Assets/production-dashboard.jpg"
+        manpower: null, // e.g. "Assets/manpower-dashboard.jpg"
       },
     },
 
     links: {
       github: "https://github.com/hxrish-14",
       linkedin: "https://www.linkedin.com/in/harishr14/",
-      instagram: "https://instagram.com/hxrish_14",
+      instagram: "https://instagram.com/" + encodeURIComponent(INSTAGRAM_HANDLE),
+      instagramHandle: INSTAGRAM_HANDLE,
       naukri: "https://www.naukri.com/mnjuser/profile?id=&altresid",
       server: "https://hxrish-14.github.io/HRS-Server/",
       quickOpen: "https://github.com/hxrish-14", // Ctrl+Alt+Shift+S
@@ -49,14 +52,13 @@
     },
 
     resume: {
-      pdf: "https://raw.githubusercontent.com/hxrish-14/Harish-Portfolio/main/HARISH%20R%20-%20RESUME.pdf",
-      pdfVersioned:
-        "https://raw.githubusercontent.com/hxrish-14/Harish-Portfolio/216739781e8ab30521b020daa98d6448ecb3c7ed/HARISH%20R%20-%20RESUME.pdf",
+      // Actual resume PDF (raw GitHub file, pinned to a commit). Used for hover/click preview AND download.
+      pdf: "https://raw.githubusercontent.com/hxrish-14/Harish-Portfolio/32d30791f883f38b07727d6abe8826193da732ea/Assets/HARISH%20R%20-%20RESUME.pdf",
       fileName: "HARISH R - RESUME.pdf",
       // Shown automatically if the PDF hasn't loaded within pdfLoadTimeout.
       // Add an image (e.g. a JPG/PNG export of page 1) to assets/resume/ and
       // point this at it — left null until a real image is supplied.
-      previewImage: null, // e.g. "assets/resume/preview.jpg"
+      previewImage: "https://raw.githubusercontent.com/hxrish-14/Harish-Portfolio/32d30791f883f38b07727d6abe8826193da732ea/Assets/HARISH%20R%20-%20RESUME.jpg", // fallback if the PDF cannot be shown
       pdfLoadTimeout: 3000,
       zoomMin: 0.5,
       zoomMax: 2.5,
@@ -184,14 +186,14 @@
     experience: [
       {
         period: "Current",
-        name: "Secretary to VP",
+        name: "Executive Assistant Trainee to the Head of Operations",
         institution: "Brakes India, TSF",
         description: "Supporting executive operations while building software skills alongside the role.",
         logoKey: "brakesIndia",
       },
       {
         period: "Apr – Jun 2025",
-        name: "Full-Stack Python Developer Intern",
+        name: "Full Stack Python Intern",
         institution: "Kaashiv Infotech",
         description: "Hands-on internship building full-stack features end-to-end with Python.",
         logoKey: "kaashiv",
@@ -200,15 +202,15 @@
 
     projects: [
       {
-        name: "Private Custom Server",
-        description: "A self-hosted server built and configured from scratch for personal projects and experiments.",
-        imageKey: "privateServer",
+        name: "Production Monitoring Dashboard",
+        description: "Interactive Power BI dashboard analysing production output, rejection trends, losses and root causes, supporting operational reporting and data-driven decisions.",
+        imageKey: "productionMonitoring",
         url: "#",
       },
       {
-        name: "Babyshield IOT",
-        description: "An IoT-based safety concept exploring sensor data and automated alerts to protect what matters most.",
-        imageKey: "babyshieldIot",
+        name: "Manpower Dashboard",
+        description: "Power BI workforce dashboard for data analysis and visualization, tracking manpower categories and trends to support workforce reporting and informed decisions.",
+        imageKey: "manpower",
         url: "#",
       },
     ],
@@ -228,7 +230,7 @@
     try {
       fn();
     } catch (err) {
-      console.warn("[portfolio] non-fatal init error:", err);
+      /* silent by design: nothing is printed for visitors */
     }
   }
   function mailtoUrl(email, subject, body) {
@@ -301,7 +303,13 @@
     if (footerGithub && isUsableUrl(PORTFOLIO_CONFIG.links.github)) footerGithub.href = PORTFOLIO_CONFIG.links.github;
 
     const footerInstagram = document.getElementById("footerInstagram");
-    if (footerInstagram && isUsableUrl(PORTFOLIO_CONFIG.links.instagram)) footerInstagram.href = PORTFOLIO_CONFIG.links.instagram;
+    if (footerInstagram && isUsableUrl(PORTFOLIO_CONFIG.links.instagram)) {
+      footerInstagram.href = PORTFOLIO_CONFIG.links.instagram;
+      footerInstagram.title = "Instagram @" + PORTFOLIO_CONFIG.links.instagramHandle;
+      footerInstagram.setAttribute("aria-label", "Instagram @" + PORTFOLIO_CONFIG.links.instagramHandle);
+    }
+    const menuInstagram = document.querySelector('.mobile-menu-footer a[href*="instagram.com"]');
+    if (menuInstagram && isUsableUrl(PORTFOLIO_CONFIG.links.instagram)) menuInstagram.href = PORTFOLIO_CONFIG.links.instagram;
 
     // No trailing period after the year, per request.
     const footerCopyright = document.getElementById("footerCopyright");
@@ -325,7 +333,7 @@
         <span>${item.name}</span>
         <span class="cat">${item.category}</span>
       </div>`;
-    track.innerHTML = flat.map(chipHTML).join("") + flat.map(chipHTML).join("");
+    track.innerHTML = flat.map(chipHTML).join(""); // one set; initLoops() clones it as needed
     void lazy; // chips use inline SVG, not <img>, so lazy-loading doesn't apply here
   }
 
@@ -390,65 +398,122 @@
       <div class="track-line" aria-hidden="true"></div>
       <div class="track-progress" aria-hidden="true"></div>
       <div class="track-row">${entries.map(nodeHTML).join("")}</div>
-      <div class="track-list">${entries.map(listNodeHTML).join("")}</div>
+      <div class="track-list"><div class="track-progress-v" aria-hidden="true"></div>${entries.map(listNodeHTML).join("")}</div>
     `;
 
     positionTrackProgress(containerId);
   }
 
-  // Measures the actual first/last .track-logo centers so the connecting
-  // line always terminates exactly at the logos — never over/undershoots,
-  // regardless of container padding, node count, or screen size.
+  // Measures the real first/last .track-logo CENTERS so the green line starts and ends exactly
+  // inside the circles (never over/undershoots) at any zoom, width or node count.
+  // Desktop: horizontal line. Mobile (<=640px): vertical line. Both draw right->left / bottom->top
+  // (oldest entry -> newest entry).
   const trackObservers = {};
   function positionTrackProgress(containerId) {
     const el = document.getElementById(containerId);
     if (!el) return;
     const row = el.querySelector(".track-row");
+    const list = el.querySelector(".track-list");
     const line = el.querySelector(".track-line");
     const progress = el.querySelector(".track-progress");
-    if (!row || !line || !progress) return;
+    const vline = el.querySelector(".track-progress-v");
+    const horizontal = !!row && row.offsetParent !== null; // row is display:none on mobile
 
-    const logos = row.querySelectorAll(".track-logo");
-    if (logos.length < 2) return;
+    if (horizontal && line && progress) {
+      const logos = row.querySelectorAll(".track-logo");
+      if (logos.length >= 2) {
+        const c = el.getBoundingClientRect();
+        const f = logos[0].getBoundingClientRect();
+        const l = logos[logos.length - 1].getBoundingClientRect();
+        const fc = f.left + f.width / 2 - c.left;
+        const lc = l.left + l.width / 2 - c.left;
+        const left = Math.min(fc, lc);
+        const width = Math.abs(lc - fc);
+        line.style.left = left + "px";
+        line.style.width = width + "px";
+        line.style.opacity = "1";
+        progress.style.left = left + "px";
+        progress.style.width = width + "px";
+        progress.classList.add("is-ready");
+      }
+    } else if (list && vline) {
+      const logos = list.querySelectorAll(".track-logo");
+      if (logos.length >= 2) {
+        const c = list.getBoundingClientRect();
+        const f = logos[0].getBoundingClientRect();
+        const l = logos[logos.length - 1].getBoundingClientRect();
+        const x = f.left + f.width / 2 - c.left;
+        const y1 = f.top + f.height / 2 - c.top;
+        const y2 = l.top + l.height / 2 - c.top;
+        vline.style.left = x - 1.5 + "px";
+        vline.style.top = Math.min(y1, y2) + "px";
+        vline.style.height = Math.abs(y2 - y1) + "px";
+        vline.classList.add("is-ready");
+      }
+    }
 
-    const containerRect = el.getBoundingClientRect();
-    const firstRect = logos[0].getBoundingClientRect();
-    const lastRect = logos[logos.length - 1].getBoundingClientRect();
-
-    const firstCenter = firstRect.left + firstRect.width / 2 - containerRect.left;
-    const lastCenter = lastRect.left + lastRect.width / 2 - containerRect.left;
-    const left = Math.min(firstCenter, lastCenter);
-    const width = Math.abs(lastCenter - firstCenter);
-
-    line.style.left = left + "px";
-    line.style.width = width + "px";
-    line.style.opacity = "1";
-    progress.style.left = left + "px";
-    progress.style.width = width + "px";
-    progress.classList.add("is-ready");
-
-    // Animate the fill in like a real progress draw, once scrolled into view.
-    if (!trackObservers[containerId] && "IntersectionObserver" in window) {
-      trackObservers[containerId] = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              progress.classList.add("is-drawn");
-              trackObservers[containerId].disconnect();
-            }
-          });
-        },
-        { threshold: 0.4 }
-      );
-      trackObservers[containerId].observe(el);
-    } else if (!("IntersectionObserver" in window)) {
-      progress.classList.add("is-drawn");
+    if (!trackObservers[containerId]) {
+      const drawAll = () => el.querySelectorAll(".track-progress, .track-progress-v").forEach((n) => n.classList.add("is-drawn"));
+      if ("IntersectionObserver" in window) {
+        trackObservers[containerId] = new IntersectionObserver((entries) => {
+          if (entries.some((e) => e.isIntersecting)) { drawAll(); trackObservers[containerId].disconnect(); }
+        }, { threshold: 0.35 });
+        trackObservers[containerId].observe(el);
+      } else {
+        trackObservers[containerId] = true;
+        drawAll();
+      }
     }
   }
 
   function repositionAllTracks() {
     positionTrackProgress("educationTrack");
     positionTrackProgress("experienceTrack");
+  }
+
+  // One ResizeObserver (instead of scattered resize listeners) keeps lines aligned at any zoom/viewport.
+  function initTrackReflow() {
+    let raf = 0;
+    const run = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(repositionAllTracks); };
+    if ("ResizeObserver" in window) {
+      const ro = new ResizeObserver(run);
+      ["educationTrack", "experienceTrack"].forEach((id) => { const n = document.getElementById(id); if (n) ro.observe(n); });
+    } else {
+      window.addEventListener("resize", run);
+    }
+    window.addEventListener("load", run);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(run);
+  }
+
+  // Seamless infinite loops: ONE set is cloned enough times to always overfill the viewport, and the
+  // animation shifts by exactly one set (100% / k). No gap at any width or zoom level.
+  function initLoops() {
+    const tracks = Array.from(document.querySelectorAll(".marquee-track, .skills-track"));
+    tracks.forEach((t) => {
+      const set = document.createElement("div");
+      set.className = "loop-set";
+      while (t.firstChild) set.appendChild(t.firstChild);
+      t.appendChild(set);
+    });
+    const build = () => {
+      tracks.forEach((t) => {
+        Array.from(t.children).slice(1).forEach((c) => c.remove());
+        const base = t.firstElementChild;
+        const w = base.getBoundingClientRect().width;
+        if (!w) return;
+        const k = Math.max(2, Math.ceil(document.documentElement.clientWidth / w) + 1);
+        for (let i = 1; i < k; i++) {
+          const clone = base.cloneNode(true);
+          clone.setAttribute("aria-hidden", "true");
+          t.appendChild(clone);
+        }
+        t.style.setProperty("--k", String(k));
+      });
+    };
+    build();
+    let raf = 0;
+    window.addEventListener("resize", () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(build); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(build);
   }
 
   /* =====================================================
@@ -518,8 +583,6 @@
     const root = document.documentElement;
 
     let ticking = false;
-    let lastY = window.scrollY;
-    let blurTimeout = null;
 
     function update() {
       const y = window.scrollY;
@@ -530,13 +593,6 @@
         const total = doc.scrollHeight - doc.clientHeight;
         signal.style.height = (total > 0 ? Math.min(100, (y / total) * 100) : 0) + "%";
       }
-
-      const delta = Math.abs(y - lastY);
-      lastY = y;
-      const blurAmount = Math.min(delta * 0.012, 1.2);
-      root.style.setProperty("--scroll-blur", blurAmount + "px");
-      clearTimeout(blurTimeout);
-      blurTimeout = setTimeout(() => root.style.setProperty("--scroll-blur", "0px"), 100);
 
       let activeId = null;
       sections.forEach((sec) => {
@@ -593,6 +649,8 @@
     window.__positionNavIndicator(active);
   }
 
+  // Plain native smooth scrolling (sections use scroll-margin-top for the sticky header).
+  // The earlier View-Transition wrapper froze the page mid-scroll and felt laggy, so it was removed.
   function initMorphNav() {
     const links = document.querySelectorAll('a[href^="#"]:not([href="#"])');
     links.forEach((link) => {
@@ -601,17 +659,8 @@
         const target = document.querySelector(id);
         if (!target) return;
         e.preventDefault();
-
-        const scrollToTarget = () => {
-          target.scrollIntoView({ behavior: "smooth", block: "start" });
-          history.pushState(null, "", id);
-        };
-
-        if (document.startViewTransition && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-          document.startViewTransition(() => scrollToTarget());
-        } else {
-          scrollToTarget();
-        }
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        history.pushState(null, "", id);
       });
     });
   }
@@ -739,6 +788,14 @@
   ===================================================== */
   let resumeFrameRequested = false;
   let resumeZoom = 1;
+  let resumeBlobPromise = null;
+  let resumeMode = null; // "hover" | "pinned" | null
+  let resumeHoverTimer = null;
+  let resumeLeaveTimer = null;
+  let resumeHideTimer = null;
+  let resumeSuppressHover = false; // after an explicit close, do not re-open while the pointer is still on the button
+  let resumeHoverTriggers = [];
+  const resumePointer = { x: -1, y: -1 }; // last mouse position (hover devices only)
 
   function applyResumeZoom() {
     const layer = document.getElementById("resumeZoomLayer");
@@ -756,48 +813,76 @@
     applyResumeZoom();
   }
 
-  function showResumeFallbackImage(statusEl, frame, img) {
-    frame.hidden = true;
-    const previewImage = PORTFOLIO_CONFIG.resume.previewImage;
-    if (isUsableUrl(previewImage)) {
-      img.onload = () => { statusEl.hidden = true; img.hidden = false; };
-      img.onerror = () => {
-        statusEl.textContent = "Couldn't load the resume preview. Use Download instead.";
-        statusEl.classList.add("is-error");
-      };
-      img.src = previewImage;
-    } else {
-      statusEl.textContent = "Preview unavailable right now — use Download instead.";
-      statusEl.classList.add("is-error");
-    }
+  // Phones/tablets cannot show a PDF inside an iframe, so they go straight to the image.
+  function canInlinePdf() {
+    if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "")) return false;
+    if (typeof navigator.pdfViewerEnabled === "boolean") return navigator.pdfViewerEnabled;
+    return true;
   }
 
-  function openResumeModal(e) {
-    if (e) e.preventDefault();
-    const modal = document.getElementById("resumeModal");
+  // raw.githubusercontent.com serves the PDF as application/octet-stream with a sandbox CSP, so a
+  // direct <iframe src> never renders. It IS CORS-open, so we fetch the bytes once and re-type them
+  // as application/pdf. The same blob is reused for the download.
+  function getResumePdfBlob() {
+    if (resumeBlobPromise) return resumeBlobPromise;
+    const url = PORTFOLIO_CONFIG.resume.pdf;
+    if (!isHttpsUrl(url)) return Promise.reject(new Error("no-pdf-url"));
+    resumeBlobPromise = fetch(url, { credentials: "omit", referrerPolicy: "no-referrer" })
+      .then((res) => { if (!res.ok) throw new Error("http-" + res.status); return res.arrayBuffer(); })
+      .then((buf) => new Blob([buf], { type: "application/pdf" }))
+      .catch((err) => { resumeBlobPromise = null; throw err; });
+    return resumeBlobPromise;
+  }
+
+  function showResumeMessage(statusEl, frame, img) {
+    frame.hidden = true;
+    img.hidden = true;
+    statusEl.hidden = false;
+    statusEl.classList.add("is-error");
+    while (statusEl.firstChild) statusEl.removeChild(statusEl.firstChild);
+    statusEl.appendChild(document.createTextNode("Couldn't load the resume preview. "));
+    const a = document.createElement("a");
+    a.href = PORTFOLIO_CONFIG.resume.pdf;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.textContent = "Open the resume PDF";
+    statusEl.appendChild(a);
+    resumeFrameRequested = false; // allow a retry next time it opens
+  }
+
+  function showResumeImage(statusEl, frame, img) {
+    frame.hidden = true;
+    const src = PORTFOLIO_CONFIG.resume.previewImage;
+    if (!isUsableUrl(src)) { showResumeMessage(statusEl, frame, img); return; }
+    img.onload = () => { statusEl.hidden = true; img.hidden = false; };
+    img.onerror = () => showResumeMessage(statusEl, frame, img);
+    img.src = src;
+  }
+
+  // Priority: 1) real PDF  2) resume JPG  3) message + PDF link
+  function loadResumePreview() {
     const frame = document.getElementById("resumeModalFrame");
     const img = document.getElementById("resumeModalImage");
     const statusEl = document.getElementById("resumeModalStatus");
-    if (!modal || !frame || !statusEl || !img) return;
+    if (!frame || !img || !statusEl) return;
+    resumeFrameRequested = true;
+    statusEl.textContent = "Loading resume…";
+    statusEl.classList.remove("is-error");
+    statusEl.hidden = false;
+    frame.hidden = true;
+    img.hidden = true;
 
-    resetResumeZoom();
+    if (!canInlinePdf()) { showResumeImage(statusEl, frame, img); return; }
 
-    if (!resumeFrameRequested) {
-      resumeFrameRequested = true;
-      statusEl.textContent = "Loading resume…";
-      statusEl.classList.remove("is-error");
-      statusEl.hidden = false;
-      frame.hidden = true;
-      img.hidden = true;
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      showResumeImage(statusEl, frame, img);
+    }, PORTFOLIO_CONFIG.resume.pdfLoadTimeout || 3000);
 
-      let settled = false;
-      const timeoutMs = PORTFOLIO_CONFIG.resume.pdfLoadTimeout || 3000;
-      const timer = setTimeout(() => {
-        if (settled) return;
-        settled = true;
-        showResumeFallbackImage(statusEl, frame, img);
-      }, timeoutMs);
-
+    getResumePdfBlob().then((blob) => {
+      if (settled) return; // timed out already; the image is showing
       frame.onload = () => {
         if (settled) return;
         settled = true;
@@ -805,41 +890,80 @@
         statusEl.hidden = true;
         frame.hidden = false;
       };
-      frame.onerror = () => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timer);
-        showResumeFallbackImage(statusEl, frame, img);
-      };
-
-      if (isHttpsUrl(PORTFOLIO_CONFIG.resume.pdf)) {
-        frame.setAttribute("src", PORTFOLIO_CONFIG.resume.pdf);
-      } else {
-        clearTimeout(timer);
-        showResumeFallbackImage(statusEl, frame, img);
-      }
-    }
-
-    modal.hidden = false;
-    requestAnimationFrame(() => modal.classList.add("is-open"));
-    document.body.style.overflow = "hidden";
+      frame.src = URL.createObjectURL(blob) + "#toolbar=0&navpanes=0&view=FitH";
+    }).catch(() => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      showResumeImage(statusEl, frame, img);
+    });
   }
 
-  function closeResumeModal() {
+  // mode "hover": floating preview under the header (desktop). mode "pinned": centered modal + backdrop.
+  // Places the hover card next to its trigger (below it, else beside it) so it never covers the
+  // button that opened it and never leaves the viewport.
+  function placeResumeHover(modal, trigger) {
+    const vw = document.documentElement.clientWidth, vh = window.innerHeight, m = 12;
+    const w = Math.min(440, vw - m * 2), h = Math.min(Math.round(vh * 0.74), 620);
+    const headerH = (document.getElementById("siteHeader") || {}).offsetHeight || 70;
+    let left = vw - w - m, top = headerH + m;
+    if (trigger) {
+      const r = trigger.getBoundingClientRect();
+      left = Math.min(Math.max(r.right - w, m), vw - w - m);
+      if (r.bottom + m + h <= vh - m) top = r.bottom + m;                       // fits below the button
+      else if (r.left - m - w >= m) { left = r.left - m - w; top = Math.min(Math.max(r.top - h / 2, headerH + m), vh - h - m); } // beside it
+      else top = Math.max(headerH + m, vh - h - m);
+    }
+    modal.style.setProperty("--rp-left", left + "px");
+    modal.style.setProperty("--rp-top", top + "px");
+    modal.style.setProperty("--rp-w", w + "px");
+    modal.style.setProperty("--rp-h", h + "px");
+  }
+
+  function showResumeModal(mode, trigger) {
     const modal = document.getElementById("resumeModal");
     if (!modal) return;
-    modal.classList.remove("is-open");
-    document.body.style.overflow = "";
-    setTimeout(() => { modal.hidden = true; }, 350);
+    clearTimeout(resumeLeaveTimer);
+    clearTimeout(resumeHoverTimer);
+    clearTimeout(resumeHideTimer);
+    if (!modal.classList.contains("is-open")) resetResumeZoom();
+    if (!resumeFrameRequested) loadResumePreview();
+    resumeMode = mode;
+    modal.hidden = false;
+    modal.classList.toggle("is-hover", mode === "hover");
+    if (mode === "hover") placeResumeHover(modal, trigger);
+    const card = modal.querySelector(".resume-modal-card");
+    if (card) card.setAttribute("aria-modal", mode === "hover" ? "false" : "true");
+    requestAnimationFrame(() => modal.classList.add("is-open"));
+    document.body.style.overflow = mode === "pinned" ? "hidden" : "";
   }
 
+  function openResumeModal(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    showResumeModal("pinned");
+  }
+
+  function closeResumeModal(explicit) {
+    const modal = document.getElementById("resumeModal");
+    if (!modal) return;
+    resumeSuppressHover = explicit === true && resumeHoverTriggers.some((t) => {
+      const r = t.getBoundingClientRect();
+      return resumePointer.x >= r.left && resumePointer.x <= r.right && resumePointer.y >= r.top && resumePointer.y <= r.bottom;
+    });
+    clearTimeout(resumeLeaveTimer);
+    clearTimeout(resumeHoverTimer);
+    modal.classList.remove("is-open");
+    resumeMode = null;
+    document.body.style.overflow = "";
+    resumeHideTimer = setTimeout(() => { modal.hidden = true; modal.classList.remove("is-hover"); }, 350);
+  }
+
+  // Always the real PDF (never the JPG/HTML). Falls back to opening the PDF URL itself.
   async function downloadResume() {
     const pdf = PORTFOLIO_CONFIG.resume.pdf;
     if (!isHttpsUrl(pdf)) return false;
     try {
-      const res = await fetch(pdf);
-      if (!res.ok) throw new Error("fetch failed");
-      const blob = await res.blob();
+      const blob = await getResumePdfBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -864,39 +988,60 @@
     const zoomOutBtn = document.getElementById("resumeZoomOut");
     const zoomResetBtn = document.getElementById("resumeZoomReset");
     const viewport = document.getElementById("resumeViewport");
-    const triggers = [
-      document.getElementById("resumeNavTrigger"),
-      document.getElementById("resumeNavTriggerMobile"),
-      document.getElementById("resumeHeroTrigger"),
-    ].filter(Boolean);
+    const navTrigger = document.getElementById("resumeNavTrigger");
+    const mobileTrigger = document.getElementById("resumeNavTriggerMobile");
+    const heroTrigger = document.getElementById("resumeHeroTrigger");
     if (!modal) return;
 
-    triggers.forEach((t) => t.addEventListener("click", openResumeModal));
-    if (backdrop) backdrop.addEventListener("click", closeResumeModal);
-    if (closeBtn) closeBtn.addEventListener("click", closeResumeModal);
-
+    // Click / tap / keyboard activation -> pinned modal (works on every device).
+    [navTrigger, mobileTrigger, heroTrigger].filter(Boolean).forEach((t) => t.addEventListener("click", openResumeModal));
+    if (backdrop) backdrop.addEventListener("click", () => closeResumeModal(true));
+    if (closeBtn) closeBtn.addEventListener("click", () => closeResumeModal(true));
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && modal.classList.contains("is-open")) closeResumeModal();
+      if (e.key === "Escape" && modal.classList.contains("is-open")) closeResumeModal(true);
     });
+
+    // Hover preview (mouse devices only): short intent delay on enter, grace period on leave so the
+    // pointer can travel from the button into the preview without it closing.
+    if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      const card = modal.querySelector(".resume-modal-card");
+      const enter = (e) => {
+        const trigger = e.currentTarget;
+        clearTimeout(resumeLeaveTimer);
+        if (resumeMode === "pinned" || resumeSuppressHover) return;
+        clearTimeout(resumeHoverTimer);
+        resumeHoverTimer = setTimeout(() => showResumeModal("hover", trigger), 180);
+      };
+      const leave = () => {
+        clearTimeout(resumeHoverTimer);
+        resumeSuppressHover = false;
+        if (resumeMode !== "hover") return;
+        clearTimeout(resumeLeaveTimer);
+        resumeLeaveTimer = setTimeout(() => closeResumeModal(false), 320);
+      };
+      document.addEventListener("mousemove", (e) => { resumePointer.x = e.clientX; resumePointer.y = e.clientY; }, { passive: true });
+      resumeHoverTriggers = [navTrigger, heroTrigger].filter(Boolean);
+      resumeHoverTriggers.forEach((t) => {
+        t.addEventListener("mouseenter", enter);
+        t.addEventListener("mouseleave", leave);
+      });
+      if (card) {
+        card.addEventListener("mouseenter", () => clearTimeout(resumeLeaveTimer));
+        card.addEventListener("mouseleave", leave);
+      }
+    }
 
     const step = PORTFOLIO_CONFIG.resume.zoomStep;
     if (zoomInBtn) zoomInBtn.addEventListener("click", () => setResumeZoom(resumeZoom + step));
     if (zoomOutBtn) zoomOutBtn.addEventListener("click", () => setResumeZoom(resumeZoom - step));
     if (zoomResetBtn) zoomResetBtn.addEventListener("click", resetResumeZoom);
 
-    // Mouse-wheel zoom on PC, only while hovering the resume viewport, and
-    // only while the modal is open — never hijacks normal page scrolling.
     if (viewport) {
-      viewport.addEventListener(
-        "wheel",
-        (e) => {
-          if (!modal.classList.contains("is-open")) return;
-          e.preventDefault();
-          const direction = e.deltaY < 0 ? 1 : -1;
-          setResumeZoom(resumeZoom + direction * step);
-        },
-        { passive: false }
-      );
+      viewport.addEventListener("wheel", (e) => {
+        if (!modal.classList.contains("is-open")) return;
+        e.preventDefault();
+        setResumeZoom(resumeZoom + (e.deltaY < 0 ? 1 : -1) * step);
+      }, { passive: false });
     }
 
     if (downloadBtn) {
@@ -1099,10 +1244,10 @@
   ===================================================== */
   function initErrorHandling() {
     window.addEventListener("error", (e) => {
-      console.warn("[portfolio] runtime error caught:", e.error || e.message);
+      /* silent by design */
     });
     window.addEventListener("unhandledrejection", (e) => {
-      console.warn("[portfolio] unhandled promise rejection caught:", e.reason);
+      /* silent by design */
     });
   }
 
@@ -1138,8 +1283,19 @@
   }
 
   function initContextMenuBlock() {
-    // UX deterrent only — this does not and cannot provide real code protection.
-    document.addEventListener("contextmenu", (e) => e.preventDefault());
+    // Lightweight UX deterrents only. They cannot truly prevent viewing source: anything sent to a
+    // browser can be inspected. Form fields keep their normal menu so paste still works.
+    const isField = (t) => t && t.closest && t.closest("input, textarea, [contenteditable='true']");
+    document.addEventListener("contextmenu", (e) => { if (!isField(e.target)) e.preventDefault(); });
+    document.addEventListener("keydown", (e) => {
+      const k = (e.key || "").toLowerCase();
+      const devtools =
+        e.key === "F12" ||
+        (e.ctrlKey && e.shiftKey && (k === "i" || k === "j" || k === "c")) ||
+        (e.ctrlKey && !e.shiftKey && !e.altKey && k === "u") ||
+        (e.metaKey && e.altKey && (k === "i" || k === "j" || k === "u" || k === "c"));
+      if (devtools) e.preventDefault();
+    });
   }
 
   /* =====================================================
@@ -1164,15 +1320,12 @@
     safe(initMorphNav);
     safe(initMobileMenu);
     safe(initReveal);
+    safe(initLoops);
+    safe(initTrackReflow);
     safe(initContactForm);
     safe(initResumeModal);
     safe(initKeyboardShortcuts);
     safe(initOfflineState);
     safe(initNotFoundState);
-
-    window.addEventListener("resize", () => {
-      clearTimeout(window.__resizeTimer);
-      window.__resizeTimer = setTimeout(repositionAllTracks, 150);
-    });
   });
 })();
